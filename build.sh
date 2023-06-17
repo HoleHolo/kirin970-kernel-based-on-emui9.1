@@ -6,7 +6,7 @@ export PATH=$PATH:/home/user/kernel/gcc/bin
 export CROSS_COMPILE=aarch64-linux-android-
 
 export PATH=$PATH:/home/user/kernel/10.3/bin
-export CROSS_COMPILE=aarch64-none-linux-gnu-
+export CROSS_COMPILE=aarch64-linux-android-
 
 mkdir ../out
 
