@@ -1,6 +1,6 @@
 # 华为麒麟 970 内核源代码
 源代码来源：[华为开源中心](https://consumer.huawei.com/en/opensource/)  
-gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads/10-3-2021-10)
+gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/downloads/-/gnu-a)
 ## 修改说明：
 1. 根据 [官方教程](https://kernelsu.org/zh_CN/guide/how-to-integrate-for-non-gki.html "参见手动修改内核源码部分") 集成了 KernelSU
 2. 根据 [Coconutat 前辈的教程](https://github.com/Coconutat/HuaweiP10-GSI-And-Modify-Or-Support-KernelSU-Tutorial/wiki/7.KernelSU%E9%80%82%E9%85%8DEMUI9%E6%88%969.1.0%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E6%A0%B8) 以及个人经验修改了内核配置文件，
