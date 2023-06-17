@@ -7,3 +7,4 @@ gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/tools-and-so
 作用包括：去除华为内核 Root 检测模块、去除 dm-verify、允许打包过程中修改 SELinux 状态、更换和加入其他调度器等
 3. 换用 arm 提供的 gcc 10.3 工具链作为默认编译器，但是需要在 Makefile 中加入编译选项 -w 忽略编译器警告
 4. kindle4jerry 大佬公开的源码的其他修改，如加入 WireGuard 等
+5. 尝试使用 Github Action 自动化编译内核（修改自 [Coconutat 仓库的文件](https://github.com/Coconutat/android_kernel_huawei_vtr_emui9_KernelSU/tree/Github_Action_Mode/.github/workflows)）
