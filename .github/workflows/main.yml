@@ -44,6 +44,7 @@ jobs:
     - name: Build Kernel
       run: |
        sudo ln -sf /usr/bin/python2.7 /usr/bin/python
+ 
        if [ -d include/config ];
         then
          echo "Find config,will remove it"
@@ -55,7 +56,8 @@ jobs:
        rm -rf KernelSU
        rm -rf drivers/kernelsu
        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-       export PATH=$(pwd)/ToolChains/bin/:$PATH
+
+       export PATH=$(pwd)/ToolChain/bin/:$PATH
        export ARCH=arm64
        export SUBARCH=arm64
        make $KERNEL_CMDLINE merge_kirin970_defconfig
