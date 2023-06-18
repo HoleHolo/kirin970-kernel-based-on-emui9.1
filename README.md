@@ -9,6 +9,6 @@ gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/downloads/-/
 4. kindle4jerry 大佬公开的源码的其他修改，如加入 WireGuard 等
 5. 尝试使用 Github Action 自动化编译内核（修改自 [Coconutat 仓库的文件](https://github.com/Coconutat/android_kernel_huawei_vtr_emui9_KernelSU/tree/Github_Action_Mode/.github/workflows)）
 ## 常见问题：
-- **编译好的内核成品在哪下载？**
+- **编译好的内核成品在哪下载？**  
 如果你可以登录 Github，那么你可以在 Github 的 Actions 选项卡找到最近一次编译工作流然后下载压缩包。
 当然，如果你嫌麻烦，也可以在 [蓝奏云网盘](https://lanzoui.com/b00wzyfmj?password=7yir) 下载。
