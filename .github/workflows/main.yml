@@ -1,6 +1,6 @@
 name: Build Kirin 970 Kernel
 on:
-  workflow_call:
+  workflow_dispatch:
   schedule:
     - cron:  '0 11 * * *'
 
