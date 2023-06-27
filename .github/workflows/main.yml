@@ -1,8 +1,8 @@
 name: Build Kirin 970 Kernel
 on:
   workflow_dispatch:
-  schedule:
-    - cron:  '0 11 1/2 * *'
+#  schedule:
+#    - cron:  '0 11 1/2 * *'
 
 jobs:
   build:
