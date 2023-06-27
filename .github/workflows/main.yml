@@ -46,10 +46,6 @@ jobs:
         echo "No Config,good."
        fi
 
-       rm -rf KernelSU
-       rm -rf drivers/kernelsu
-       curl -LSs "https://raw.githubusercontent.com/HoleHolo/KernelSU/main/kernel/setup.sh" | bash -s main
-
        export PATH=$(pwd)/ToolChain/bin/:$PATH
        export ARCH=arm64
        export SUBARCH=arm64
