@@ -1,8 +1,8 @@
 name: Build Kirin 970 Kernel
 on:
   workflow_dispatch:
-#  schedule:
-#    - cron:  '0 11 1/2 * *'
+  schedule:
+    - cron:  '0 11 1/2 * *'
 
 jobs:
   build:
@@ -48,7 +48,7 @@ jobs:
 
        rm -rf KernelSU
        rm -rf drivers/kernelsu
-       curl -LSs "https://raw.githubusercontent.com/HoleHolo/KernelSU/main/kernel/setup.sh" | bash -s main
+       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
        export PATH=$(pwd)/ToolChain/bin/:$PATH
        export ARCH=arm64
