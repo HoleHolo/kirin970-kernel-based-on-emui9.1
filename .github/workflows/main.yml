@@ -27,7 +27,8 @@ jobs:
       run: |
         sudo apt-get update -y 
         sudo apt install binutils make python2 git git-lfs bc build-essential ccache curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
-        git clone https://github.com/HoleHolo/ToolChain.git --dept=1
+        # git clone https://github.com/HoleHolo/ToolChain.git --depth=1
+        git clone https://github.com/Coconutat/ToolChains.git --depth=1 -b linaro_gcc_4.9
     
     - name: Get Time
       id: get_time
