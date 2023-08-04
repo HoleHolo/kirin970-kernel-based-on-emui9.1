@@ -2,7 +2,7 @@ name: Build Kirin 970 Kernel
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '0 11 1/2 * *'
+    - cron:  '0 11 1/5 * *'
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
       CCACHE_NOHASHDIR: "true"
       CCACHE_MAXSIZE: "2G"
       CCACHE_HARDLINK: "true"
-      KERNEL_CMDLINE: "ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- O=out"
+      KERNEL_CMDLINE: "ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out"
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -27,8 +27,7 @@ jobs:
       run: |
         sudo apt-get update -y 
         sudo apt install binutils make python2 git git-lfs bc build-essential ccache curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
-        # git clone https://github.com/HoleHolo/ToolChain.git --depth=1
-        git clone https://github.com/Coconutat/ToolChains.git --depth=1 -b linaro_gcc_4.9
+        git clone https://github.com/HoleHolo/ToolChains.git --depth=1 -b gcc_4.9
     
     - name: Get Time
       id: get_time
@@ -51,7 +50,7 @@ jobs:
        rm -rf drivers/kernelsu
        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
-       export PATH=$(pwd)/ToolChain/bin/:$PATH
+       export PATH=$(pwd)/ToolChains/bin/:$PATH
        export ARCH=arm64
        export SUBARCH=arm64
        make $KERNEL_CMDLINE merge_kirin970_defconfig
