@@ -12,7 +12,7 @@ jobs:
       CCACHE_NOHASHDIR: "true"
       CCACHE_MAXSIZE: "2G"
       CCACHE_HARDLINK: "true"
-      KERNEL_CMDLINE: "ARCH=arm64 CROSS_COMPILE=aarch64-linux-android- O=out"
+      KERNEL_CMDLINE: "ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- O=out"
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -27,8 +27,8 @@ jobs:
       run: |
         sudo apt-get update -y 
         sudo apt install binutils make python2 git git-lfs bc build-essential ccache curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
-        # git clone https://github.com/HoleHolo/ToolChains.git --depth=1 -b gcc_4.9
-        git clone https://github.com/ibnudz/aarch64-linux-android-4.9 $(pwd)/toolchain
+        # git clone https://github.com/ibnudz/aarch64-linux-android-4.9 $(pwd)/toolchain
+        git clone https://github.com/HoleHolo/ToolChains.git --depth=1 -b main
     
     - name: Get Time
       id: get_time
