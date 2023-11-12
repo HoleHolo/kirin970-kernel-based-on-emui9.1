@@ -9,6 +9,11 @@ gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/downloads/-/
 4. kindle4jerry 大佬公开的源码的其他修改，如加入 WireGuard 等
 5. 使用 Github Action 每天晚上 7 点自动化编译内核（修改自 [Coconutat 仓库的文件](https://github.com/Coconutat/android_kernel_huawei_vtr_emui9_KernelSU/tree/Github_Action_Mode/.github/workflows)）
 ## 常见问题：
+- **KernelSU 怎么用？**
+这一点请参见 KernelSU 网站上的介绍，主要流程就是：刷入内核 -> 安装管理器。 现 KernelSU 已支持更低的安卓版本，可以在官方系统上使用。 
+- **内核适用于哪个版本？**  
+请降级到 9.1.0.312，版本不对应时由于与 HAL 层的兼容问题手机无法连接加密的 Wi-Fi。
+如果您不想降级，请考虑使用 Magisk 或尝试在扩容分区后刷入旧版本 vendor 镜像。
 - **编译好的内核成品在哪下载？**  
 此页面上有最新的发行版可供使用，你可以下载你所需要的版本。  
 如果你可以登录 Github，并且热爱尝鲜，那么你可以在 Github 的 Actions 选项卡找到最近一次编译工作流然后下载压缩包。  
