@@ -1,0 +1,11 @@
+scripts/basic/.fixdep.cmd
+scripts/basic/fixdep
+scripts/kconfig/.conf.cmd
+scripts/kconfig/.conf.o.cmd
+scripts/kconfig/.zconf.tab.o.cmd
+scripts/kconfig/conf
+scripts/kconfig/conf.o
+scripts/kconfig/zconf.hash.c
+scripts/kconfig/zconf.lex.c
+scripts/kconfig/zconf.tab.c
+scripts/kconfig/zconf.tab.o
