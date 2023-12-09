@@ -6,6 +6,9 @@ export ARCH=arm64
 export PATH=$PATH:/home/user/ToolChains/bin
 export CROSS_COMPILE=aarch64-none-linux-gnu-
 
+# 填写你自己的主机名
+export KBUILD_BUILD_HOST=PC
+
 mkdir ../out
 
 make ARCH=arm64 O=../out merge_kirin970_defconfig
