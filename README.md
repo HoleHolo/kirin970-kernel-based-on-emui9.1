@@ -1,18 +1,35 @@
 # 华为麒麟 970 内核源代码
+
 源代码来源：[华为开源中心](https://consumer.huawei.com/en/opensource/)  
 gcc 10.3 编译器下载：[下载页面](https://developer.arm.com/downloads/-/gnu-a)
-## 修改说明：
+
+## 修改说明
+
 1. 根据 [官方教程](https://kernelsu.org/zh_CN/guide/how-to-integrate-for-non-gki.html "参见手动修改内核源码部分") 集成了 KernelSU。
 2. 根据 [Coconutat 前辈的教程](https://github.com/Coconutat/HuaweiP10-GSI-And-Modify-Or-Support-KernelSU-Tutorial/wiki/7.KernelSU%E9%80%82%E9%85%8DEMUI9%E6%88%969.1.0%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E6%A0%B8) 以及个人经验修改了内核配置文件，
 作用包括：去除华为内核 Root 检测模块、去除 dm-verify、允许打包过程中修改 SELinux 状态、更换和加入其他调度器等。
 3. 换用 arm 提供的 gcc 10.3 工具链作为默认编译器，但是需要在 Makefile 中加入编译选项 -w 忽略编译器警告。
 4. kindle4jerry 大佬公开的源码的其他修改，如加入 WireGuard 等。
 5. maimaiguanfan 大佬的一些补丁。
-6. 使用 Github Action 在固定时间自动化编译内核（修改自 [Coconutat 仓库的文件](https://github.com/Coconutat/android_kernel_huawei_vtr_emui9_KernelSU/tree/Github_Action_Mode/.github/workflows)）。
-## 常见问题：
+6. AOSP 仓库、其它 Linux 内核仓库的一些提交。
+7. 使用 Github Action 在固定时间自动化编译内核（修改自 [Coconutat 仓库的文件](https://github.com/Coconutat/android_kernel_huawei_vtr_emui9_KernelSU/tree/Github_Action_Mode/.github/workflows)）。
+
+## 分支说明
+
+- **main 分支**
+默认的分支，代码经过了实际的编译、实机测试，基本上比较稳定。
+- **pure 分支**
+尽可能保持少量更改，不含 KernelSU，不影响正常编译。
+- **common 分支**
+是与上游 AOSP 标准内核仓库源代码进行同步的一个分支，稳定性比较差，仅供开发测试使用。
+- **experiment 分支**
+加入其他开发者的补丁的一个分支，以及其它的个人修改，当然也可能在 common 分支上进行改动。
+
+## 常见问题
+
 - **KernelSU 怎么用？**  
-这一点请参见 KernelSU 网站上的介绍，主要流程就是：刷入内核 -> 安装管理器。 现 KernelSU 已支持更低的安卓版本，可以在官方系统上使用。 
-- **内核适用于哪个版本？**  
+这一点请参见 KernelSU 网站上的介绍，主要流程就是：刷入内核 -> 安装管理器。 现 KernelSU 已支持更低的安卓版本，可以在官方系统上使用。
+- **内核适用于哪个系统版本？**  
 请降级到 9.1.0.312，版本不对应时由于与 HAL 层的兼容问题手机无法连接加密的 Wi-Fi。
 如果您不想降级，请考虑使用 Magisk 或尝试在扩容分区后刷入旧版本 vendor 镜像。
 - **编译好的内核成品在哪下载？**  
