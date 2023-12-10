@@ -186,20 +186,6 @@ static const bool bbr_drain_to_target = true;   /* default: enabled */
                  const struct sk_buff *skb,
                  unsigned int cur_mss);*/ /* bbp-mod49#7 rip */
 
-/* bbp-mod49#8 add begin */
-static bool tcp_snd_wnd_test(const struct tcp_sock *tp,
-                             const struct sk_buff *skb,
-                             unsigned int cur_mss)
-{
-        u32 end_seq = TCP_SKB_CB(skb)->end_seq;
-
-        if (skb->len > cur_mss)
-                end_seq = TCP_SKB_CB(skb)->seq + cur_mss;
-
-        return !after(end_seq, tcp_wnd_end(tp));
-}
-/* bbp-mod49#8 add end */
-
 /* bbrplus#5 add end */
 
 /* Do we estimate that STARTUP filled the pipe? */
