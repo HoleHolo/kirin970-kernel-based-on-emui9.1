@@ -84,12 +84,9 @@ config INET
 
 if INET
 source "net/wireguard/Kconfig"
-source "net/wireguard/Kconfig"
-source "net/wireguard/Kconfig"
 source "net/ipv4/Kconfig"
 source "net/ipv6/Kconfig"
 source "net/netlabel/Kconfig"
-source "net/wireguard/Kconfig"
 source "net/mptcp/Kconfig"
 
 endif # if INET
