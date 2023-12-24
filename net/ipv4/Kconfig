@@ -688,13 +688,12 @@ config TCP_CONG_BALIA
 	To enable it, just put 'balia' in tcp_congestion_control
 
 config TCP_CONG_BBRPLUS
-        bool "BBRPLUS TCP"
-        default y
-        ---help---
-
-        BBRplus is an enhanced version of BBR (Bottleneck Bandwidth and RTT).
-        Originally introduced by dog250 & cx9208.
-        Same as BBR, it requires the fq ("Fair Queue") pacing packet scheduler.
+	bool "BBRPLUS TCP"
+	default y
+	---help---
+	BBRplus is an enhanced version of BBR (Bottleneck Bandwidth and RTT).
+	Originally introduced by dog250 & cx9208.
+	Same as BBR, it requires the fq ("Fair Queue") pacing packet scheduler.
 
 choice
 	prompt "Default TCP congestion control"
