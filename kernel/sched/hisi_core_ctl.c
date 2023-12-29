@@ -998,11 +998,13 @@ static void __core_ctl_set_boost(struct cluster_data *cluster)
 	trace_core_ctl_set_boost(cluster->boost);
 }
 
+/*
 void core_ctl_set_boost(void)
 {
 	__core_ctl_set_boost(NULL);
 }
 EXPORT_SYMBOL(core_ctl_set_boost);
+*/
 
 void core_ctl_spread_affinity(cpumask_t *allowed_mask)
 {
