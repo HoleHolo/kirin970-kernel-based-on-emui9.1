@@ -1,4 +1,4 @@
-name: Build Kernel For Kirin 970 Devices (4.9.149 \| Stable)
+name: Build Kernel (Stable)
 
 on:
   workflow_dispatch:
