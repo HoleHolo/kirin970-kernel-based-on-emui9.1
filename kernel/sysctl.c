@@ -439,15 +439,15 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
-#ifdef CONFIG_HISI_EAS_SCHED
-	{
-		.procname	= "sched_walt_cpu_overload_irqload",
-		.data		= &sysctl_sched_walt_cpu_overload_irqload,
-		.maxlen		= sizeof(unsigned int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-#endif /* CONFIG_HISI_EAS_SCHED */
+// #ifdef CONFIG_HISI_EAS_SCHED
+// 	{
+// 		.procname	= "sched_walt_cpu_overload_irqload",
+// 		.data		= &sysctl_sched_walt_cpu_overload_irqload,
+// 		.maxlen		= sizeof(unsigned int),
+// 		.mode		= 0644,
+// 		.proc_handler	= proc_dointvec,
+// 	},
+// #endif /* CONFIG_HISI_EAS_SCHED */
 #endif /* CONFIG_SCHED_WALT */
 #ifdef CONFIG_HISI_RT_CAS
 	{

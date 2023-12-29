@@ -38,9 +38,9 @@ extern unsigned int sysctl_sched_use_walt_cpu_util;
 extern unsigned int sysctl_sched_use_walt_task_util;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
-#ifdef CONFIG_HISI_EAS_SCHED
-extern unsigned int sysctl_sched_walt_cpu_overload_irqload;
-#endif
+// #ifdef CONFIG_HISI_EAS_SCHED
+// extern unsigned int sysctl_sched_walt_cpu_overload_irqload;
+// #endif
 #endif
 #ifdef CONFIG_HISI_RT_CAS
 extern unsigned int sysctl_sched_enable_rt_cas;
