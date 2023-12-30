@@ -11,5 +11,5 @@ export KBUILD_BUILD_HOST=PC
 
 mkdir ~/out
 
-make ARCH=arm64 O=~/out merge_kirin970_experiment_defconfig
+make ARCH=arm64 O=~/out merge_kirin970_defconfig
 make ARCH=arm64 O=~/out -j$(nproc)
