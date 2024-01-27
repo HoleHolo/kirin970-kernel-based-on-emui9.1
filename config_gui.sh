@@ -9,4 +9,4 @@ export CROSS_COMPILE=aarch64-none-linux-gnu-
 # 填写你自己的主机名
 export KBUILD_BUILD_HOST=PC
 
-make O=../OUT xconfig
+make O=../OUT nconfig
