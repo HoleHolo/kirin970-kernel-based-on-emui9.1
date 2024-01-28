@@ -1,4 +1,50 @@
-
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2012-2021. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #ifndef __APPL2INTERFACE_H__
 #define __APPL2INTERFACE_H__
@@ -116,6 +162,7 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_OM_L2_DCM_BSR_RPT_CMD_REQ            = (APP_L2_MSG_HDR + 0x0B),  /*0xe1B*/
     ID_L2_OM_DCM_BSR_RPT_CMD_CNF            = (L2_APP_MSG_HDR + 0x0F),  /*0xe0F*/
     ID_L2_OM_DCM_CA_CTRL_ELEMENT_IND        = (L2_APP_MSG_HDR + 0x04),  /*0xe04*/
+
     /*end DCM logger*/
     ID_APP_MAC_TRANSPARENT_CMD_REQ          = (APP_MAC_MSG_HDR + 0x01),
     ID_APP_MAC_TRANSPARENT_CMD_CNF          = (MAC_APP_MSG_HDR + 0x02),
@@ -158,14 +205,12 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_OM_L2_DT_DL_VOLTE_IP_ROHC_PROP_REQ   = (APP_PDCP_MSG_HDR + 0x06),  /*0xee6*/
     ID_L2_OM_DT_DL_VOLTE_IP_ROHC_PROP_CNF   = (PDCP_APP_MSG_HDR + 0x0E),  /*0xece*/
 
-
     /*测试部新增控制命令需求*/
     ID_OM_L2_STUB_CMD_FORBID_UL_DATA_REQ    = (APP_PDCP_MSG_HDR + 0x07),  /*0xee7*/
     ID_OM_L2_STUB_CMD_CLR_PDCP_STAT_REQ     = (APP_PDCP_MSG_HDR + 0x08),  /*0xee8*/
     ID_OM_L2_STUB_CMD_TRIG_RLC_ERR_IND_REQ  = (APP_PDCP_MSG_HDR + 0x09),  /*0xee9*/
     ID_OM_L2_STUB_CMD_CLR_MAC_STAT_REQ      = (APP_PDCP_MSG_HDR + 0x0a),  /*0xeea*/
     ID_L2_OM_STUB_CMD_CNF                   = (PDCP_APP_MSG_HDR + 0x0F),  /*0xecf*/
-
 
     ID_PS_OM_PDCP_UL_SRB_INFO_IND           = (PDCP_APP_MSG_HDR + 0x05),
     ID_PS_OM_PDCP_UL_RRC_CNF_INFO_IND       = (PDCP_APP_MSG_HDR + 0x06),
@@ -174,7 +219,6 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_PS_OM_RLC_DL_RX_CTRL_PDU_INFO_IND    = (PDCP_APP_MSG_HDR + 0x09),
     ID_PS_OM_RLC_DL_SRB_PDU_INFO_IND        = (PDCP_APP_MSG_HDR + 0x0A),
     ID_PS_OM_DLHO_VOICE_RTP_DELAY_INFO_IND  = (PDCP_APP_MSG_HDR + 0x0F)
-
 };
 typedef         VOS_UINT32          APP_L2_MSG_TYPE_ENUM_UINT32;
 

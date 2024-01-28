@@ -143,6 +143,18 @@ static const struct partition partition_table_emmc[] =
     {PART_PRODUCT,           5304*1024, 712*1024, EMMC_USER_PART}, /* product          712M  p58*/
     {PART_USERDATA,          6016*1024, 4096*1024,EMMC_USER_PART}, /* userdata         4096M p59*/
 #elif defined CONFIG_MARKET_HANDEL_OVERSEA
+#ifdef CONFIG_EN_PRETS_PRETVS
+    {PART_SYSTEM,            1024*1024, 2500*1024,EMMC_USER_PART}, /* system           2500M p52*/
+    {PART_PRETS,             3524*1024, 124*1024, EMMC_USER_PART}, /* prets            124M  p53*/
+    {PART_PRETVS,            3648*1024, 16*1024,  EMMC_USER_PART}, /* pretvs           16M   p54*/
+    {PART_PREAS,             3664*1024, 1064*1024,EMMC_USER_PART}, /* preas            1064M p55*/
+    {PART_PREAVS,            4728*1024, 32*1024,  EMMC_USER_PART}, /* preavs           32M   p56*/
+    {PART_CUST,              4760*1024, 136*1024, EMMC_USER_PART}, /* cust             136M  p57*/
+    {PART_VERSION,           4896*1024, 32*1024,  EMMC_USER_PART}, /* version          32M   p58*/
+    {PART_VENDOR,            4928*1024, 584*1024, EMMC_USER_PART}, /* vendor           584M  p59*/
+    {PART_PRODUCT,           5512*1024, 248*1024, EMMC_USER_PART}, /* product          248M  p60*/
+    {PART_USERDATA,          5760*1024, 4096*1024,EMMC_USER_PART}, /* userdata         4096M p61*/
+#else
     {PART_SYSTEM,            1024*1024, 2640*1024,EMMC_USER_PART}, /* system           2640M p52*/
     {PART_PREAS,             3664*1024, 1064*1024,EMMC_USER_PART}, /* preas            1064M p53*/
     {PART_PREAVS,            4728*1024, 32*1024,  EMMC_USER_PART}, /* preavs           32M   p54*/
@@ -151,6 +163,7 @@ static const struct partition partition_table_emmc[] =
     {PART_VENDOR,            4928*1024, 584*1024, EMMC_USER_PART}, /* vendor           584M  p57*/
     {PART_PRODUCT,           5512*1024, 248*1024, EMMC_USER_PART}, /* product          248M  p58*/
     {PART_USERDATA,          5760*1024, 4096*1024,EMMC_USER_PART}, /* userdata         4096M p59*/
+#endif
 #elif defined CONFIG_MARKET_INTERNAL_LITE
     {PART_SYSTEM,            1024*1024, 2712*1024,EMMC_USER_PART}, /* system           2712M p52*/
     {PART_PREAS,             3736*1024, 152*1024, EMMC_USER_PART}, /* preas            152M  p53*/
@@ -257,6 +270,19 @@ static const struct partition partition_table_emmc[] =
     {PART_VENDOR,            5984*1024, 784*1024, EMMC_USER_PART}, /* vendor            784M  p55*/
     {PART_PRODUCT,           6768*1024, 192*1024, EMMC_USER_PART}, /* product           192M  p56*/
     {PART_USERDATA,          6960*1024, 4096*1024,EMMC_USER_PART}, /* userdata          4096M p57*/
+#elif defined CONFIG_MARKET_INTERNAL_HM
+    {PART_PATCH,             944*1024,  96*1024,  EMMC_USER_PART}, /* patch             96M   p48*/
+    {PART_BOOTFAIL_INFO,     1040*1024,  2*1024,  EMMC_USER_PART}, /* bootfail_info     2M    p49*/
+    {PART_RRECORD,           1042*1024,  16*1024, EMMC_USER_PART}, /* rrecord           16M   p50*/
+    {PART_RESERVED9,         1058*1024,  2*1024,  EMMC_USER_PART}, /* reserved9         2M    p51*/
+    {PART_SYSTEM,            1060*1024, 2328*1024,EMMC_USER_PART}, /* system            2328M p52*/
+    {PART_VENDOR,            3388*1024, 524*1024, EMMC_USER_PART}, /* vendor            524M  p53*/
+    {PART_PREAS,             3912*1024, 168*1024, EMMC_USER_PART}, /* preas             168M  p54*/
+    {PART_PREAVS,            4080*1024, 32*1024,  EMMC_USER_PART}, /* preavs            32M   p55*/
+    {PART_CUST,              4112*1024, 88*1024,  EMMC_USER_PART}, /* cust              88M   p56*/
+    {PART_VERSION,           4200*1024, 32*1024,  EMMC_USER_PART}, /* version           32M   p57*/
+    {PART_PRODUCT,           4232*1024, 1080*1024,EMMC_USER_PART}, /* product           1080M p58*/
+    {PART_USERDATA,          5312*1024, 4096*1024,EMMC_USER_PART}, /* userdata          4096M p59*/
 #else
 #ifdef CONFIG_VENDORIMAGE_FILE_SYSTEM_TYPE
     {PART_PATCH,             944*1024,  32*1024,  EMMC_USER_PART}, /* patch             32M   p48*/

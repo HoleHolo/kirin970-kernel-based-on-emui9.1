@@ -116,7 +116,7 @@ TAF_UINT32 At_Auc2ul(TAF_UINT8 *nptr,TAF_UINT16 usLen,TAF_UINT32 *pRtn)
 {
     TAF_UINT32 c     = 0;         /* current Char */
     TAF_UINT32 total = 0;         /* current total */
-    TAF_UINT8 Length = 0;         /* current Length */
+    TAF_UINT32 Length = 0;         /* current Length */
 
     c = (TAF_UINT32)*nptr++;
 
@@ -146,7 +146,7 @@ TAF_UINT32 At_String2Hex(TAF_UINT8 *nptr,TAF_UINT16 usLen,TAF_UINT32 *pRtn)
 {
     TAF_UINT32 c     = 0;         /* current Char */
     TAF_UINT32 total = 0;         /* current total */
-    TAF_UINT8 Length = 0;         /* current Length */
+    TAF_UINT32 Length = 0;         /* current Length */
 
     c = (TAF_UINT32)*nptr++;
 

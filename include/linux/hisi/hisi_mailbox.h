@@ -240,4 +240,6 @@ extern void hisi_mbox_device_deactivate(struct hisi_mbox_device **mdevs);
 extern int hisi_mbox_device_register(struct device *parent, struct hisi_mbox_device **mdevs);
 extern int hisi_mbox_device_unregister(struct hisi_mbox_device **list);
 
+extern bool is_hisi_mbox_suspend(void);
+
 #endif /* __HISI_MAILBOX_H__ */

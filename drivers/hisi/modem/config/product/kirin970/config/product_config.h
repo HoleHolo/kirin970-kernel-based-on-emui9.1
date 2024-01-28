@@ -29,7 +29,7 @@
 #include "product_config_modem_ddr_mini_dump.h"
 #endif
 
-#ifdef MODEM_LOG_FILTER_NVCONTROL
+#ifdef MODEM_LOG_FILTER_INUSER
 #include "product_config_modem_log_filter.h"
 #endif
 

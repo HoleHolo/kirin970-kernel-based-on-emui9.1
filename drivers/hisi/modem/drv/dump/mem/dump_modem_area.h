@@ -53,6 +53,7 @@ s32 dump_get_area_info(DUMP_AREA_ID areaid,struct dump_area_mntn_addr_info_s* ar
 s32 dump_area_init(void);
 s32 dump_get_global_info(struct dump_global_area_ctrl_s * global_area);
 void* dump_get_global_baseinfo(void);
+s32 dump_check_valid_mntn_addr(u8 *addr, u32 len);
 
 #ifdef MNTN_AREA_CBOOT_ADDR
 void dump_clear_cpboot_area(void);

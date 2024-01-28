@@ -295,6 +295,7 @@ static const char * const fw_path[] = {
 	"/lib/firmware/updates",
 	"/lib/firmware/" UTS_RELEASE,
 	"/lib/firmware",
+	"/pretvs/oversea/nuance/firmware",
 	"/system/vendor/firmware",
 	"/system/vendor/firmware/ivp"
 };
@@ -360,6 +361,7 @@ fw_get_filesystem_firmware(struct device *device, struct firmware_buf *buf)
 					 path, rc);
 			continue;
 		}
+		dev_info(device, "loading %s ok\n", path);
 		dev_dbg(device, "direct-loading %s\n", buf->fw_id);
 		buf->size = size;
 		fw_finish_direct_load(device, buf);

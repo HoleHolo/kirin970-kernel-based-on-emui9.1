@@ -17,10 +17,6 @@
 #include "xattr.h"
 #include <trace/events/f2fs.h>
 
-#ifdef CONFIG_HWAA
-#include <huawei_platform/hwaa/hwaa_fs_hooks.h>
-#endif
-
 static unsigned long dir_blocks(struct inode *inode)
 {
 	return ((unsigned long long) (i_size_read(inode) + PAGE_SIZE - 1))
@@ -399,13 +395,6 @@ struct page *init_inode_metadata(struct inode *inode, struct dentry *dentry,
 			err = fscrypt_inherit_context(dir, inode, page, false);
 			if (err)
 				goto put_error;
-#ifdef CONFIG_HWAA
-			err = hwaa_inherit_context(dir, inode, dentry, page, false);
-			if (err) {
-				err = -EINVAL;
-				goto put_error;
-			}
-#endif
 
 #if DEFINE_F2FS_FS_SDP_ENCRYPTION
 			err = f2fs_sdp_crypt_inherit(dir, inode, dpage, page);

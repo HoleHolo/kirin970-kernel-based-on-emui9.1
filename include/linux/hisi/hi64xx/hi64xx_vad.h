@@ -15,6 +15,6 @@
 
 extern int hi64xx_fast_mode_set(unsigned short enable);
 extern int hi64xx_vad_init(struct snd_soc_codec *codec, struct hi64xx_irq *irq);
-extern int hi64xx_vad_deinit(void);
+extern int hi64xx_vad_deinit(struct snd_soc_codec *codec);
 
 #endif

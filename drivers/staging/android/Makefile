@@ -1,5 +1,9 @@
 ccflags-y += -I$(src)			# needed for trace events
 
+ifeq ($(BUILD_WITH_HARMONY), true)
+ccflags-y += -DCONFIG_HARMONY_LOWMEMORYKILLER_OPTIMIZE
+endif
+
 obj-y					+= ion/
 obj-$(CONFIG_FIQ_DEBUGGER)		+= fiq_debugger/
 

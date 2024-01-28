@@ -19,6 +19,7 @@
 #define REG_BUFFER_LAST                (0x814)
 #define REG_BUFFER_INI                 (0x818)
 #define REG_SCD_PROTOCOL               (0x820)
+#define REG_SCEN_IDENT                 (0x828)
 
 /* state registers */
 #define REG_SCD_OVER                   (0x840)

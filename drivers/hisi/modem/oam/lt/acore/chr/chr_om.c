@@ -96,7 +96,7 @@ VOS_UINT8                               g_ucErrRptFlag[256] = {0};
 
 #define CHR_LogReport(fmt, ...)  \
     DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, 0, 1), MSP_PID_CHR, "chr_om", __LINE__, "%s:"fmt, __FUNCTION__, ##__VA_ARGS__)
-
+#define OM_ERRLOG_MAX_CFG_LEN 1024
 
 
 VOS_VOID  OM_ChrOpenLog(VOS_UINT32 ulFlag)
@@ -1004,6 +1004,11 @@ VOS_INT OM_AcpuReadVComData(VOS_UINT8 ucDevIndex, VOS_UINT8 *pucData, VOS_UINT32
     }
     
     down(&g_stOmRxErrorLogBuffSem);
+
+    if (ulLen > OM_ERRLOG_MAX_CFG_LEN) {
+        chr_print("input length error !\n");
+        return VOS_ERR;
+    }
 
     if (ulLen < sizeof(OM_ALARM_MSG_HEAD_STRU))
     {

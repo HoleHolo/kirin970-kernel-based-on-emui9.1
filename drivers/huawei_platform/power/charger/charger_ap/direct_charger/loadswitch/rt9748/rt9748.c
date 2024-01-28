@@ -850,7 +850,9 @@ static int rt9748_config_vbat_reg_threshold_mv(int vbat_reg_threshold)
 		if (vbat_reg_threshold > RT9748_VBAT_REG_MAX_5000_MV)
 			vbat_reg_threshold = RT9748_VBAT_REG_MAX_5000_MV;
 
-		value = (u8)((vbat_reg_threshold - RT9748_VBAT_REG_OFFSET_4200_MV) / RT9748_VBAT_REG_STEP);
+		value = (u8)((vbat_reg_threshold -
+			RT9748_VBAT_REG_OFFSET_4200_MV) /
+			RT9748_VBAT_REG_STEP);
 		hwlog_info("rt9748 vbat_reg_threshold=%d, value=0x%x\n",
 			vbat_reg_threshold, value);
 		ret = rt9748_write_mask(RT9748_VBAT_REG,
@@ -868,7 +870,9 @@ static int rt9748_config_vbat_reg_threshold_mv(int vbat_reg_threshold)
 		if (vbat_reg_threshold > BQ25870_VBAT_REG_MAX_4975_MV)
 			vbat_reg_threshold = BQ25870_VBAT_REG_MAX_4975_MV;
 
-		value = (u8)((vbat_reg_threshold - BQ25870_VBAT_REG_OFFSET_4200_MV) / BQ25870_VBAT_REG_STEP);
+		value = (u8)((vbat_reg_threshold -
+			BQ25870_VBAT_REG_OFFSET_4200_MV) /
+			BQ25870_VBAT_REG_STEP);
 		hwlog_info("bq25870 vbat_reg_threshold=%d, value=0x%x\n",
 			vbat_reg_threshold, value);
 		ret = rt9748_write_mask(BQ25870_VBAT_REG,
@@ -959,10 +963,13 @@ static int rt9748_config_ibat_ocp_threshold_ma(int ocp_threshold)
 		if (ocp_threshold > BQ25870_IBAT_OCP_MAX_6350_MA)
 			ocp_threshold = BQ25870_IBAT_OCP_MAX_6350_MA;
 
-		value = (u8)((ocp_threshold - BQ25870_IBAT_OCP_OFFSET_0_MA) / BQ25870_IBAT_OCP_STEP);
+		value = (u8)((ocp_threshold -
+			BQ25870_IBAT_OCP_OFFSET_0_MA) / BQ25870_IBAT_OCP_STEP);
 		hwlog_info("bq25870 ocp_threshold=%d, value=0x%x\n",
 			ocp_threshold, value);
-		ret = rt9748_write_mask(BQ25870_IBAT_OCP, BQ25870_IBAT_OCP_MASK, BQ25870_IBAT_OCP_SHIFT, value);
+		ret = rt9748_write_mask(BQ25870_IBAT_OCP,
+			BQ25870_IBAT_OCP_MASK, BQ25870_IBAT_OCP_SHIFT,
+			value);
 		if (ret)
 			return -1;
 
@@ -975,10 +982,14 @@ static int rt9748_config_ibat_ocp_threshold_ma(int ocp_threshold)
 		if (ocp_threshold > FAN54161_IBAT_OCP_MAX_6350_MA)
 			ocp_threshold = FAN54161_IBAT_OCP_MAX_6350_MA;
 
-		value = (u8)((ocp_threshold - FAN54161_IBAT_OCP_OFFSET_0_MA) / FAN54161_IBAT_OCP_STEP);
+		value = (u8)((ocp_threshold -
+			FAN54161_IBAT_OCP_OFFSET_0_MA) /
+			FAN54161_IBAT_OCP_STEP);
 		hwlog_info("fan54161 ocp_threshold=%d, value=0x%x\n",
 			ocp_threshold, value);
-		ret = rt9748_write_mask(FAN54161_IBAT_OCP, FAN54161_IBAT_OCP_MASK, FAN54161_IBAT_OCP_SHIFT, value);
+		ret = rt9748_write_mask(FAN54161_IBAT_OCP,
+			FAN54161_IBAT_OCP_MASK, FAN54161_IBAT_OCP_SHIFT,
+			value);
 		if (ret)
 			return -1;
 
@@ -990,10 +1001,14 @@ static int rt9748_config_ibat_ocp_threshold_ma(int ocp_threshold)
 		if (ocp_threshold > PCA9498UK_IBAT_OCP_MAX_6350_MA)
 			ocp_threshold = PCA9498UK_IBAT_OCP_MAX_6350_MA;
 
-		value = (u8)((ocp_threshold - PCA9498UK_IBAT_OCP_OFFSET_0_MA) / PCA9498UK_IBAT_OCP_STEP);
+		value = (u8)((ocp_threshold -
+			PCA9498UK_IBAT_OCP_OFFSET_0_MA) /
+			PCA9498UK_IBAT_OCP_STEP);
 		hwlog_info("nxp ocp_threshold=%d, value=0x%x\n",
 			ocp_threshold, value);
-		ret = rt9748_write_mask(PCA9498UK_IBAT_OCP, PCA9498UK_IBAT_OCP_MASK, PCA9498UK_IBAT_OCP_SHIFT, value);
+		ret = rt9748_write_mask(PCA9498UK_IBAT_OCP,
+			PCA9498UK_IBAT_OCP_MASK, PCA9498UK_IBAT_OCP_SHIFT,
+			value);
 		if (ret)
 			return -1;
 

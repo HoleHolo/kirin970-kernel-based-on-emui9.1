@@ -29,8 +29,8 @@ static void ipf_pm_reset(void)
 {
     struct ipf_share_mem_map* sm = bsp_ipf_get_sharemem();
 
-    if(ipf_flag_down == sm->init.status.save)
-    {
+    if (ipf_flag_down == sm->init.status.save) {
+        bsp_psam_clear_intr_stat();
         reset_ipf_psam_from_sys();
         g_ipf_ctx.psam_pm->restore_reg(&sm->reg_save[PSAM_ACORE_MAP(sm)]);
         g_ipf_ctx.stax.reset[g_ipf_ctx.stax.reset_index%8] = bsp_get_slice_value();

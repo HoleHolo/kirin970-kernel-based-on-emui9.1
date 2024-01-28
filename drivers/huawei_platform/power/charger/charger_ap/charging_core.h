@@ -50,9 +50,6 @@
 #define FIRST_RUN_TRUE               (1)
 #define FIRST_RUN_FALSE              (0)
 
-#define BATT_BRAND_STRING_MAX        (32)
-#define BATT_BRAND_NUM_MAX           (5)
-
 #define CCAFC_RUN_DEFAULT	0
 #define CCAFC_RUN_FIRST		1
 #define CCAFC_RUN_ALREADY	2

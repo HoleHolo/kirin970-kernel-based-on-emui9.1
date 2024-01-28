@@ -53,6 +53,19 @@ static const char * const soc_ctl_op_user_table[SOC_CTL_OP_USER_END] = {
 	[SOC_CTL_OP_USER_CUST] = "cust",
 };
 
+extern unsigned int coul_get_isc_status (void);
+
+static int judge_soc_ctl_enable (void)
+{
+	if(coul_get_isc_status() > 0)
+	{
+		hwlog_info("judge soc ctl disable\n");
+		return JUDGE_SOC_CTL_DISABLE;
+	}
+
+	return JUDGE_SOC_CTL_ENABLE;
+}
+
 static int soc_ctl_get_op_user(const char *str)
 {
 	unsigned int i;
@@ -97,10 +110,14 @@ static void soc_ctl_startup_capacity_control(struct soc_ctl_dev *l_dev)
 {
 	int cur_soc = hisi_battery_capacity();
 
-	hwlog_info("startup(%d): cur_soc=%d, min_soc=%d, max_soc=%d\n",
-		l_dev->work_mode, cur_soc, l_dev->min_soc, l_dev->max_soc);
+	hwlog_info("startup(%d): cur_soc=%d, min_soc=%d, max_soc=%d, iin_curr=%d\n",
+		l_dev->work_mode, cur_soc,
+		l_dev->min_soc, l_dev->max_soc, l_dev->iin_curr);
 
-	/* disable charging and set input current to 100ma */
+	/*
+	 * for example, soc between 75% and 100%,
+	 * we need disable charging and set input current to 100ma
+	 */
 	if ((cur_soc > l_dev->max_soc) &&
 		(l_dev->work_mode != WORK_IN_DISABLE_CHG_MODE)) {
 		power_if_kernel_sysfs_set(POWER_IF_OP_TYPE_ALL,
@@ -111,7 +128,25 @@ static void soc_ctl_startup_capacity_control(struct soc_ctl_dev *l_dev)
 		l_dev->work_mode = WORK_IN_DISABLE_CHG_MODE;
 	}
 
-	/* enable charging and recovery input current */
+	/*
+	 * for example, soc keep at between 55% and 75%,
+	 * we need disable charging and recovery input current by user setting
+	 */
+	if ((cur_soc == l_dev->max_soc) &&
+		(l_dev->work_mode == WORK_IN_DISABLE_CHG_MODE)) {
+		power_if_kernel_sysfs_set(POWER_IF_OP_TYPE_ALL,
+			POWER_IF_SYSFS_ENABLE_CHARGER, SOC_CTL_CHG_DISABLE);
+		power_if_kernel_sysfs_set(POWER_IF_OP_TYPE_DCP,
+			POWER_IF_SYSFS_VBUS_IIN_LIMIT, l_dev->iin_curr);
+
+		l_dev->work_mode = WORK_IN_BALANCE_MODE;
+	}
+
+
+	/*
+	 * for example, soc between 0% and 55%,
+	 * we need enable charging and recovery input current
+	 */
 	if ((cur_soc < l_dev->min_soc) &&
 		(l_dev->work_mode != WORK_IN_ENABLE_CHG_MODE)) {
 		power_if_kernel_sysfs_set(POWER_IF_OP_TYPE_ALL,
@@ -128,9 +163,9 @@ static void soc_ctl_recovery_capacity_control(struct soc_ctl_dev *l_dev)
 	if (l_dev->work_mode == WORK_IN_DEFAULT_MODE)
 		return;
 
-	hwlog_info("recovery(%d): cur_soc=%d, min_soc=%d, max_soc=%d\n",
-		l_dev->work_mode,
-		hisi_battery_capacity(), l_dev->min_soc, l_dev->max_soc);
+	hwlog_info("recovery(%d): cur_soc=%d, min_soc=%d, max_soc=%d, iin_curr=%d\n",
+		l_dev->work_mode, hisi_battery_capacity(),
+		l_dev->min_soc, l_dev->max_soc, l_dev->iin_curr);
 
 	l_dev->work_mode = WORK_IN_DEFAULT_MODE;
 
@@ -149,10 +184,14 @@ static void soc_ctl_event_work(struct work_struct *work)
 	if (!l_dev)
 		return;
 
-	soc_ctl_startup_capacity_control(l_dev);
-
-	schedule_delayed_work(&l_dev->work,
+	if (judge_soc_ctl_enable() == JUDGE_SOC_CTL_ENABLE ) {
+		soc_ctl_startup_capacity_control(l_dev);
+		schedule_delayed_work(&l_dev->work,
 		msecs_to_jiffies(SOC_CTL_LOOP_TIME));
+	} else {
+		soc_ctl_recovery_capacity_control(l_dev);
+	}
+
 }
 
 static void soc_ctl_event_control(int event)
@@ -160,6 +199,9 @@ static void soc_ctl_event_control(int event)
 	struct soc_ctl_dev *l_dev = soc_ctl_get_dev();
 
 	if (!l_dev)
+		return;
+
+	if (judge_soc_ctl_enable() == JUDGE_SOC_CTL_DISABLE)
 		return;
 
 	/*
@@ -311,10 +353,11 @@ static ssize_t soc_ctl_sysfs_show(struct device *dev,
 	switch (info->name) {
 	case SOC_CTL_SYSFS_CONTROL:
 		len = scnprintf(buf, PAGE_SIZE,
-			"user=%s, enable=%d, min_soc=%d, max_soc=%d\n",
+			"user=%s, enable=%d, min_soc=%d, max_soc=%d, iin_curr=%d\n",
 			soc_ctl_get_op_user_name(l_dev->user),
 			l_dev->enable,
-			l_dev->min_soc, l_dev->max_soc);
+			l_dev->min_soc, l_dev->max_soc,
+			l_dev->iin_curr);
 		break;
 
 	default:
@@ -336,6 +379,7 @@ static ssize_t soc_ctl_sysfs_store(struct device *dev,
 	int enable;
 	unsigned int min_soc;
 	unsigned int max_soc;
+	unsigned int iin_curr = SOC_CTL_IIN_LIMIT;
 
 	if (!l_dev)
 		return -EINVAL;
@@ -355,8 +399,8 @@ static ssize_t soc_ctl_sysfs_store(struct device *dev,
 	}
 
 	/* 4: the fields of "user enable min_soc max_soc" */
-	if (sscanf(buf, "%s %d %d %d",
-		user_name, &enable, &min_soc, &max_soc) != 4) {
+	if (sscanf(buf, "%s %d %d %d %d",
+		user_name, &enable, &min_soc, &max_soc, &iin_curr) < 4) {
 		hwlog_err("unable to parse input:%s\n", buf);
 		return -EINVAL;
 	}
@@ -371,21 +415,23 @@ static ssize_t soc_ctl_sysfs_store(struct device *dev,
 		return -EINVAL;
 	}
 
-	/* soc must be (0, 100) and (max_soc - min_soc) >= 10 */
+	/* soc must be (0, 100) and (max_soc - min_soc) >= 5 */
 	if ((min_soc < 0 || min_soc > 100) ||
 		(max_soc < 0 || max_soc > 100) ||
-		(min_soc + 10 > max_soc)) {
+		(min_soc + 5 > max_soc)) {
 		hwlog_err("invalid min_soc(%d) or max_soc(%d)\n",
 			min_soc, max_soc);
 		return -EINVAL;
 	}
 
-	hwlog_info("set: user=%s, enable=%d, min_soc=%d, max_soc=%d\n",
-		soc_ctl_get_op_user_name(user), enable, min_soc, max_soc);
+	hwlog_info("set: user=%s, enable=%d, min_soc=%d, max_soc=%d, iin_curr=%d\n",
+		soc_ctl_get_op_user_name(user), enable,
+		min_soc, max_soc, iin_curr);
 
 	l_dev->user = user;
 	l_dev->min_soc = min_soc;
 	l_dev->max_soc = max_soc;
+	l_dev->iin_curr = iin_curr;
 
 	/* ignore the same control event */
 	if (l_dev->enable == enable) {

@@ -268,7 +268,9 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {ACPU_FID_PCVOICE,      "PCVOICE",      PCV_AcpuFidInit,        VOS_START_THIRD,    8192,   0  },
     {ACPU_FID_PAM_OM,       "PAM_OM",       PAMOM_APP_FID_Init,     VOS_START_THIRD,    8192,   0  },
 #endif
-
+#if (FEATURE_PPP == FEATURE_ON)
+    {MSPS_FID_PPPS,         "PPPS_FID",     PPPS_FidInit,           VOS_START_THIRD,    16384,  0  },
+#endif
 };
 #endif
 

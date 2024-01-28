@@ -38,6 +38,7 @@ SINT32 SCDDRV_ResetSCD(VOID)
 	UINT32 reg;
 	UINT32 *pScdResetReg   = NULL;
 	UINT32 *pScdResetOkReg = NULL;
+	UINT32 scen_ident_store_val = 0;
 
 	pScdResetReg   = (UINT32 *) MEM_Phy2Vir(gSOFTRST_REQ_Addr);
 	pScdResetOkReg = (UINT32 *) MEM_Phy2Vir(gSOFTRST_OK_ADDR);
@@ -48,7 +49,7 @@ SINT32 SCDDRV_ResetSCD(VOID)
 	}
 
 	tmp = RD_SCDREG(REG_SCD_INT_MASK);
-
+	scen_ident_store_val = RD_SCDREG(REG_SCEN_IDENT);
 
 	reg = *(volatile UINT32 *)pScdResetReg;
 	*(volatile UINT32 *)pScdResetReg = reg | (UINT32) (1 << SCD_RESET_CTRL_BIT);
@@ -67,7 +68,7 @@ SINT32 SCDDRV_ResetSCD(VOID)
 
 	*(volatile UINT32 *)pScdResetReg = reg & (UINT32) (~(1 << SCD_RESET_CTRL_BIT));
 
-
+	WR_SCDREG(REG_SCEN_IDENT, scen_ident_store_val);
 	WR_SCDREG(REG_SCD_INT_MASK, tmp);
 
 	s_SCDState = SCD_IDLE;

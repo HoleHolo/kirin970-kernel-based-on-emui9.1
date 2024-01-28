@@ -122,6 +122,22 @@ void mdrv_sysboot_restart(void);
 *****************************************************************************/
 int  mdrv_set_modem_state(unsigned int state);
 
+/*****************************************************************************
+* 函 数 名  : mdrv_sysboot_register_reset_notify
+*
+* 功能描述  : 向reset模块注册通知modem C核 reset发生的通知函数
+*
+* 输入参数  : const char *pname   上层组件注册的名字，最长9个字符（不包括结束符），底软负责存储
+*             pdrv_reset_cbfun pcbfun  回调函数指针
+*             int userdata      上层组件数据，在调用回调函数时，作为入参传给注册者
+*             int priolevel  回调函数调用优先级，参考emum DRV_RESET_CALLCBFUN_PRIO定义，值越小优先级越高
+* 输出参数  :
+*
+* 返 回 值  : 0，注册成功；1，注册不成功
+*
+* 其它说明  :
+*
+*****************************************************************************/
 typedef int (*pdrv_reset_cbfun)(DRV_RESET_CB_MOMENT_E enparam, int userdata);
 int mdrv_sysboot_register_reset_notify(const char *pname, pdrv_reset_cbfun pcbfun, int userdata, int priolevel);
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(4, 9, 0))

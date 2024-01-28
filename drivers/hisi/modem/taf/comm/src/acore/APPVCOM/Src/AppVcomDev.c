@@ -492,7 +492,7 @@ int APP_VCOM_Release(
 
     if (ucIndex >= APP_VCOM_MAX_NUM)
     {
-        APP_VCOM_TRACE_ERR(ucIndex, "APP_VCOM_Release ucIndex is error. ");
+        APP_VCOM_ERR_LOG(ucIndex, "APP_VCOM_Release ucIndex is error. ");
         return VOS_ERROR;
     }
 
@@ -563,7 +563,7 @@ int APP_VCOM_Open(
 
     if (ucIndex >= APP_VCOM_MAX_NUM)
     {
-        APP_VCOM_TRACE_ERR(ucIndex, "APP_VCOM_Open ucIndex is error. ");
+        APP_VCOM_ERR_LOG(ucIndex, "APP_VCOM_Open ucIndex is error. ");
         return VOS_ERROR;
     }
 
@@ -736,7 +736,7 @@ ssize_t APP_VCOM_Write(
 
     if(ucIndex >= APP_VCOM_MAX_NUM)
     {
-        APP_VCOM_TRACE_ERR(ucIndex, "APP_VCOM_Write, ucIndex fail. ");
+        APP_VCOM_ERR_LOG(ucIndex, "APP_VCOM_Write, ucIndex fail. ");
         return APP_VCOM_ERROR;
     }
 
@@ -873,7 +873,7 @@ VOS_UINT32  APP_VCOM_Send (
     if (enDevIndex >= APP_VCOM_MAX_NUM)
     {
         g_stAppVcomDebugInfo.ulDevIndexErr++;
-        APP_VCOM_TRACE_ERR(enDevIndex, "APP_VCOM_Send, enDevIndex is error. ");
+        APP_VCOM_ERR_LOG(enDevIndex, "APP_VCOM_Send, enDevIndex is error. ");
         return VOS_ERR;
     }
 

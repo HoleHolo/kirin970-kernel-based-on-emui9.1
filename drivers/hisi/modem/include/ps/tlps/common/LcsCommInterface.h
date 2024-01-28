@@ -1,3 +1,50 @@
+/*
+ * Copyright (C) Huawei Technologies Co., Ltd. 2012-2015. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 
 #ifndef __LCSCOMMINTERFACE_H__
@@ -33,7 +80,12 @@ extern "C" {
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
-
+/*******************************************************************************
+ 枚举名    : LCS_PLANE_ENUM
+ 结构说明  : LCS特性MO-LR流程PLANE枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_PLANE_ENUM
 {
     LCS_PLANE_CONTROL                   = 0,
@@ -43,7 +95,12 @@ enum LCS_PLANE_ENUM
 };
 typedef VOS_UINT8 LCS_PLANE_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_MOLR_METHOD_ENUM
+ 结构说明  : LCS特性MO-LR流程定位方法枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_MOLR_METHOD_ENUM
 {
     LCS_MOLR_METHOD_GPS                 = 0,                                    /* Unassisted GPS */
@@ -58,7 +115,12 @@ enum LCS_MOLR_METHOD_ENUM
 };
 typedef VOS_UINT8 LCS_MOLR_METHOD_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_HOR_ACC_SET_ENUM
+ 结构说明  : LCS特性MO-LR流程水平精度设置标志枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_HOR_ACC_SET_ENUM
 {
     LCS_HOR_ACC_NOT_SET                 = 0,
@@ -68,7 +130,12 @@ enum LCS_HOR_ACC_SET_ENUM
 };
 typedef VOS_UINT8 LCS_HOR_ACC_SET_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_VER_REQ_ENUM
+ 结构说明  : LCS特性MO-LR流程垂直坐标请求枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_VER_REQ_ENUM
 {
     LCS_VER_NOT_REQUESTED               = 0,
@@ -78,7 +145,12 @@ enum LCS_VER_REQ_ENUM
 };
 typedef VOS_UINT8 LCS_VER_REQ_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_VER_ACC_SET_ENUM
+ 结构说明  : LCS特性MO-LR流程垂直精度设置标志枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_VER_ACC_SET_ENUM
 {
     LCS_VER_ACC_NOT_SET                 = 0,
@@ -88,7 +160,12 @@ enum LCS_VER_ACC_SET_ENUM
 };
 typedef VOS_UINT8 LCS_VER_ACC_SET_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_VEL_REQ_ENUM
+ 结构说明  : LCS特性MO-LR流程速度请求枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_VEL_REQ_ENUM
 {
     LCS_VEL_NOT_REQUESTED               = 0,                                    /* Velocity not requested */
@@ -101,7 +178,12 @@ enum LCS_VEL_REQ_ENUM
 };
 typedef VOS_UINT8 LCS_VEL_REQ_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_REP_MODE_ENUM
+ 结构说明  : LCS特性MO-LR流程上报模式枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_REP_MODE_ENUM
 {
     LCS_REP_MODE_SINGLE_RPT             = 0,
@@ -111,7 +193,12 @@ enum LCS_REP_MODE_ENUM
 };
 typedef VOS_UINT8 LCS_REP_MODE_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_MTLRA_OP_ENUM
+ 结构说明  : LCS特性MT-LR用户响应网络定位请求操作枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_MTLRA_OP_ENUM
 {
     LCS_MTLRA_ALLOW                     = 0,
@@ -121,7 +208,12 @@ enum LCS_MTLRA_OP_ENUM
 };
 typedef VOS_UINT8 LCS_MTLRA_OP_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_NOTIFICATION_TYPE_ENUM
+ 结构说明  : LCS特性MT-LR网络定位请求中的用户隐私信息操作枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_NOTIFICATION_TYPE_ENUM
 {
     LCS_NOTIFICATION_ALLOW_THIRD_PARTY          = 0,
@@ -132,7 +224,12 @@ enum LCS_NOTIFICATION_TYPE_ENUM
 };
 typedef VOS_UINT8 LCS_NOTIFICATION_TYPE_ENUM_UINT8;
 
-
+/*******************************************************************************
+ 枚举名    : LCS_LOCATION_TYPE_ENUM
+ 结构说明  : LCS特性MT-LR网络定位请求中的用户隐私信息操作枚举
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增枚举
+*******************************************************************************/
 enum LCS_LOCATION_TYPE_ENUM
 {
     LCS_LOCATION_CURRENT                = 0,
@@ -158,7 +255,12 @@ typedef VOS_UINT8 LCS_LOCATION_TYPE_ENUM_UINT8;
   5 STRUCT定义
 *****************************************************************************/
 
-
+/*******************************************************************************
+ 结构名    : LCS_SHAPE_REP_STRU
+ 结构说明  : LCS特性MO-LR流程参数shape-rep对应结构体
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增结构体
+*******************************************************************************/
 typedef struct
 {
     VOS_UINT8                           bitEllipPoint               :1;
@@ -171,7 +273,12 @@ typedef struct
     VOS_UINT8                           bitSpare                    :1;
 } LCS_SHAPE_REP_STRU;
 
-
+/*******************************************************************************
+ 结构名    : LCS_CLIENT_EXTERNAL_ID_STRU
+ 结构说明  : LCS特性客户端扩展ID结构体
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增结构体
+*******************************************************************************/
 typedef struct
 {
     VOS_UINT8                           ucLength;
@@ -182,7 +289,12 @@ typedef struct
     ***************************************************************************/
 }LCS_CLIENT_EXTERNAL_ID_STRU;
 
-
+/*******************************************************************************
+ 结构名    : LCS_CLIENT_NAME_STRU
+ 结构说明  : LCS特性客户端名称结构体
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增结构体
+*******************************************************************************/
 typedef struct
 {
     VOS_UINT8                           ucLength;
@@ -193,7 +305,12 @@ typedef struct
     ***************************************************************************/
 }LCS_CLIENT_NAME_STRU;
 
-
+/*******************************************************************************
+ 结构名    : LCS_MOLR_PARA_STRU
+ 结构说明  : LCS特性MO-LR流程参数结构体
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增结构体
+*******************************************************************************/
 typedef struct
 {
     LCS_MOLR_METHOD_ENUM_UINT8          enMethod;
@@ -219,7 +336,12 @@ typedef struct
     LCS_CLIENT_EXTERNAL_ID_STRU         stTPAddr;                               /* Third Party Address */
 }LCS_MOLR_PARA_STRU;
 
-
+/*******************************************************************************
+ 结构名    : LCS_MTLR_PARA_STRU
+ 结构说明  : LCS特性MT-LR流程参数结构体
+  1.日    期   : 2015年8月25日
+    修改内容   : 新增结构体
+*******************************************************************************/
 typedef struct
 {
     VOS_UINT32                          bitOpClientExId     : 1;

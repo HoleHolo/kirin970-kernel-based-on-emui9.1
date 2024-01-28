@@ -28,6 +28,7 @@
 #ifndef _KBASE_HWACCESS_GPU_DEFS_H_
 #define _KBASE_HWACCESS_GPU_DEFS_H_
 
+#define JOB_SLOT_NUM 3
 /* SLOT_RB_SIZE must be < 256 */
 #define SLOT_RB_SIZE 2
 #define SLOT_RB_MASK (SLOT_RB_SIZE - 1)

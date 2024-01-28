@@ -356,7 +356,11 @@ VOS_UINT32 AT_Ipv4AddrAtoi(
 
             /* 统计'.'的个数 */
             ulDotNum++;
-
+            if (ulDotNum >= TAF_IPV4_ADDR_LEN)
+            {
+                AT_NORM_LOG("AT_Ipv4AddrAtoi: dot num is more than 3, return ERROR");
+                return VOS_ERR;
+            }
             continue;
         }
         else
@@ -513,6 +517,10 @@ VOS_UINT32 AT_Ipv6AddrAtoi(
 
             /* 统计'.'的个数 */
             ulDotNum++;
+            if (ulDotNum >= TAF_IPV6_ADDR_LEN)
+            {
+                return VOS_ERR;
+            }
 
             continue;
         }

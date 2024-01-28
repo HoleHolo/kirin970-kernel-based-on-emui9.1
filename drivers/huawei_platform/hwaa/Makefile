@@ -6,7 +6,7 @@ CONFIG_HWAA := m
 endif
 
 obj-$(CONFIG_HWAA) += src/base/hwaa_utils.o \
-		      src/base/amap.o
+		      src/base/hwaa_list.o
 
 obj-$(CONFIG_HWAA) += src/fek/hwaa_fs_callbacks.o
 
@@ -14,30 +14,15 @@ obj-$(CONFIG_HWAA) += src/ioctl/hwaa_ioctl.o \
 		      src/ioctl/hwaa_ioctl_impl.o \
 		      src/ioctl/hwaa_user_key.o
 
-obj-$(CONFIG_HWAA) += src/policy/hwaa_policy.o
-
-obj-$(CONFIG_HWAA) += src/proc_mgmt/hwaa_proc_mgmt.o \
-		      src/proc_mgmt/hwaa_proc_callbacks.o \
-		      src/proc_mgmt/hwaa_trusted_zygote.o
-
-obj-$(CONFIG_HWAA) += src/tee/wrappers.o \
-		      src/tee/khandler.o \
+obj-$(CONFIG_HWAA) += src/tee/hwaa_adapter.o \
 		      src/tee/base_alg.o \
 		      src/tee/hwaa_alg.o \
 		      src/tee/hwaa_tee.o
 
-obj-$(CONFIG_HWAA) += src/data/hwaa_packages.o \
-		      src/data/hwaa_running_apps.o \
-		      src/data/hwaa_trusted_pids.o \
-		      src/data/hwaa_data.o
-
 EXTRA_CFLAGS := -I../../include/ \
 		-Iinc/base \
-		-Iinc/data \
 		-Iinc/fek \
 		-Iinc/ioctl \
-		-Iinc/policy \
-		-Iinc/proc_mgmt \
 		-Iinc/tee \
                 -Idrivers/hisi/tzdriver \
 		-Idrivers/hisi/tzdriver/libhwsecurec

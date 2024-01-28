@@ -35,7 +35,7 @@
 
 
 /*----global variables-----------------------------------------------------------------*/
-
+static bool g_bopd_enabled;
 
 /*----global function prototypes--------------------------------------------------------*/
 
@@ -47,23 +47,25 @@
 
 bool bfr_safe_mode_has_been_enabled(void)
 {
-    if (((totalram_pages * PAGE_SIZE) / BFR_KB) < (BFR_MIN_MEM_SIZE_FOR_BOPD))
-    {
-        return true;
-    }
-
-    return false;
+	return !g_bopd_enabled;
 }
 
 bool bfr_bopd_has_been_enabled(void)
 {
-    if (((totalram_pages * PAGE_SIZE) / BFR_KB) >= (BFR_MIN_MEM_SIZE_FOR_BOPD))
-    {
-        return true;
-    }
-
-    return false;
+	return g_bopd_enabled;
 }
+
+static int __init bfr_bopd_is_enable(char *p)
+{
+	if (p) {
+		BFMR_PRINT_KEY_INFO("early_param bopd_mem_sp is %s\n", p);
+		if (!strncmp(p, "on", strlen("on")))
+			g_bopd_enabled = true;
+	}
+	return 0;
+}
+
+early_param("bopd_mem_sp", bfr_bopd_is_enable);
 
 int bfr_get_full_path_of_rrecord_part(char **path_buf)
 {

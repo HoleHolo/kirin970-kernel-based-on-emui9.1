@@ -97,8 +97,10 @@ struct coul_core_info_sh {
 	int v_offset_b;
 	int c_offset_a;
 	int c_offset_b;
-    struct ntc_temp_compensation_para_data ntc_temp_compensation_para[COMPENSATION_PARA_LEVEL];
+	struct ntc_temp_compensation_para_data ntc_temp_compensation_para[COMPENSATION_PARA_LEVEL];
 	struct battery_aging_safe_policy basp_policy[BASP_LEVEL_CNT];
+	unsigned int nondc_volt_set_flag;
+	unsigned int nondc_volt_dec_value;
 };
 
 struct polar_calc_info {
@@ -176,6 +178,8 @@ struct hisi_coul_ops {
     int (*get_coul_calibration_status)(void);
     int (*battery_removed_before_boot)(void);
     int (*get_qmax)(void);
+	int (*get_ndcvolt_dec_nv)(unsigned int *volt_dec);
+	int (*set_ndcvolt_dec_apk)(unsigned int volt_dec);
 #ifdef CONFIG_HISI_ASW
 	int (*asw_refresh_fcc)(void);
 #endif /* CONFIG_HISI_ASW */

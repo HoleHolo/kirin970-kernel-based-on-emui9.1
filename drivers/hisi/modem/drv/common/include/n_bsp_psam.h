@@ -135,6 +135,7 @@ int psam_register_adq_empty_dlcb(adq_emtpy_cb_t adq_emtpy_cb);
 int bsp_psam_idle(void);
 int psam_reinit_regs(void);
 int bsp_psam_get_used_dlad(IPF_AD_TYPE_E ad_type, unsigned int * ad_num, IPF_AD_DESC_S * pst_ad_desc);
+void bsp_psam_clear_intr_stat(void);
 #else
 struct psam_pm_cb* bsp_psam_set_ipf_para(struct tagpsam_ipf_reg *para)
 {
@@ -160,6 +161,9 @@ static inline int bsp_psam_idle(void)
 static inline int psam_reinit_regs(void)
 {
 	return 0;
+}
+static inline void bsp_psam_clear_intr_stat(void)
+{
 }
 #endif
 	
@@ -207,6 +211,7 @@ int bsp_psam_idle_status(void);
 int bsp_psam_cbdq_idle(void);
 void psam_clear_ptr(void);
 void bsp_psam_stop(void);
+void bsp_psam_clear_intr_stat(void);
 #else
 static inline int bsp_psam_get_cipher_bd(struct tagpsam_cipher_reg * param)
 {
@@ -275,6 +280,9 @@ static inline int bsp_psam_idle_status(void)
 static inline int bsp_psam_cbdq_idle(void)
 {
     return 1;
+}
+static inline void bsp_psam_clear_intr_stat(void)
+{
 }
 #endif
 #endif

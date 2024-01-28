@@ -1,4 +1,4 @@
-/* MD5: 999fd37dc31e1e1780fc7dc938207615*/
+/* MD5: 61538c5a00ca586f6c73e90368ddf0eb*/
 #if !defined(__PRODUCT_CONFIG_GUCAS_H__)
 #define __PRODUCT_CONFIG_GUCAS_H__
 
@@ -116,6 +116,18 @@
 
 #ifndef GAS_UE_REL_VER
 #define GAS_UE_REL_VER (GAS_PTL_VER_R9) 
+#endif 
+
+#ifndef GSM_ENCODIX_VER_083
+#define GSM_ENCODIX_VER_083 0 
+#endif 
+
+#ifndef GSM_ENCODIX_VER_186
+#define GSM_ENCODIX_VER_186 1 
+#endif 
+
+#ifndef GSM_ENCODIX_VER
+#define GSM_ENCODIX_VER GSM_ENCODIX_VER_186 
 #endif 
 
 #ifndef FEATURE_DC_MIMO

@@ -127,6 +127,7 @@ bool nv_img_is_white_file(const s8 * pfile)
              NV_ERROR
              BSP_ERR_NV_NO_FILE 失败，需要调用者复位系统
 *****************************************************************************/
+#define MAX_DIR_DEPTH 5
 u32 nv_img_check_white_list(const s8 * source, u32 depth)
 {
     s32 ret;
@@ -141,6 +142,11 @@ u32 nv_img_check_white_list(const s8 * source, u32 depth)
     struct rfile_stat_stru s_stat;
     RFILE_DIRENT_STRU * pdirent;
 
+
+    if (depth >= MAX_DIR_DEPTH) {
+        nv_printf("depth err\n");
+        return NV_OK;
+    }
 
     /* 获取当前文件信息 */
     ret = bsp_stat((s8 *)source, &s_stat);

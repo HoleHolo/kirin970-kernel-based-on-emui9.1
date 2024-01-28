@@ -74,8 +74,9 @@ TRACE_EVENT(cpufreq_schedutil_get_util,/* [false alarm]:原生宏定义 */
 		     unsigned long top,
 		     unsigned int iowait,
 		     unsigned int flag,
-		     unsigned int ed),
-	    TP_ARGS(cpu, util, max, top, iowait, flag, ed),
+		     unsigned int ed,
+		     unsigned int od),
+	    TP_ARGS(cpu, util, max, top, iowait, flag, ed, od),
 	    TP_STRUCT__entry(
 		    __field(unsigned int,	cpu)
 		    __field(unsigned long,	util)
@@ -84,6 +85,7 @@ TRACE_EVENT(cpufreq_schedutil_get_util,/* [false alarm]:原生宏定义 */
 		    __field(unsigned int,	iowait)
 		    __field(unsigned int,	flag)
 		    __field(unsigned int,	ed)
+		    __field(unsigned int,	od)
 	    ),
 	    TP_fast_assign(
 		    __entry->cpu = cpu;
@@ -93,10 +95,11 @@ TRACE_EVENT(cpufreq_schedutil_get_util,/* [false alarm]:原生宏定义 */
 		    __entry->iowait = iowait;
 		    __entry->flag = flag;
 		    __entry->ed = ed;
+		    __entry->od = od;
 	    ),
-	    TP_printk("cpu=%u util=%lu max=%lu top=%lu iowait=%u flag=%u ed=%u",
+	    TP_printk("cpu=%u util=%lu max=%lu top=%lu iowait=%u flag=%u ed=%u od=%u",
 		      __entry->cpu, __entry->util, __entry->max, __entry->top,
-		      __entry->iowait, __entry->flag, __entry->ed)
+		      __entry->iowait, __entry->flag, __entry->ed, __entry->od)
 );
 
 TRACE_EVENT(cpufreq_schedutil_notyet,/* [false alarm]:原生宏定义 */

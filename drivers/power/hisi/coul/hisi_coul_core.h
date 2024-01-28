@@ -111,6 +111,16 @@
 #define BASP_FCC_LERAN_TEMP_MIN (200) /*tenth degree*/
 #define BASP_FCC_LERAN_TEMP_MAX (450) /*tenth degree*/
 #define BASP_DEFAULT_RECORD_FCC_AVG   9999
+#define WAIT_FOR_PRODUCT_MOUNT        25000
+#define BASP_PDT_PARA_FILE            "/product/etc/chargemonitor/basp_para.cfg"
+#define PDT_FILE_MAGIC_NUM            0x5a3c7711
+#define VOLT_DEC_MAX_CYCLE_STEP       50
+#define VOLT_DEC_MIN_CYCLE_STEP       2
+#define VOLT_DEC_DEFAULT_CYCLE_STEP   14
+#define BASP_NDCVOLT_DEC_STEP         0
+#define BASP_MAX_MVOLT_DEC            250
+#define BASP_MIN_CUR_RATIO            50
+#define BASP_FATAL_VDEC_TH            100
 
 enum BASP_POLICY_MEM_TAG {
     BASP_MEM_LEVEL,
@@ -136,6 +146,22 @@ enum basp_version {
 	BASP_VERSION_1,
 	BASP_VERSION_2,
 	BASP_VERSION_COUNT,
+};
+
+enum BASP_PDT_BATT_ENABLE_FLAG {
+	BASP_PDT_DISABLE_ALL_BATT,
+	BASP_PDT_ENABLE_ALL_BATT,
+	BASP_PDT_ENABLE_SPECIFIC_BATT,
+	BASP_PDT_ENABLE_END,
+};
+
+enum BASP_PDT_PARA_STATUS {
+	BASP_PDT_PARA_INIT_STATUS,
+	BASP_PDT_PARA_READ_DONE,
+	BASP_PDT_PARA_DELAYING,
+	BASP_PDT_PARA_DELAY_DONE,
+	BASP_PDT_PARA_APPLY_DONE,
+	BASP_PDT_PARA_STATUS_END,
 };
 
 typedef enum BATTERY_TEMP_USER {
@@ -177,7 +203,7 @@ enum ocv_level {
 #define TEMPERATURE_CHANGE_LIMIT 50
 #define CALIBRATE_INTERVAL (5*60*1000)    /* 5 min */
 #define CHARGED_OCV_UPDATE_INTERVAL_S (10*60)
-
+#define DELAY_REPORT_DMD_TIME  (100*1000)    /* 100s */
 
 #define DEFAULT_SOC_MONITOR_LIMIT (100)
 #define DEFAULT_SOC_MONITOR_TEMP_MIN (10)
@@ -206,7 +232,7 @@ enum ocv_level {
 #define ZERO_VOLTAGE_PLUS_5 3200
 #define ZERO_VOLTAGE_MINUS_10 3200
 
-#define MAX_TEMPS 10
+#define MAX_TEMPS 8
 #define MAX_RECORDS_CNT 5
 #define MAX_BASP_RECORDS_CNT 3
 #define INVALID_BATT_ID_VOL  -999
@@ -390,6 +416,7 @@ enum ocv_level {
 #define ISC_APP_READY                   1
 #define FATAL_ISC_OCV_UPDATE_THRESHOLD  20
 #define FATAL_ISC_ACTION_DMD_ONLY       0x01 //enable dmd report only
+#define ISC_SH_CHARGER_DEFAULT          0
 
 #define CAPACITY_DENSE_AREA_3200	(3200000)
 #define CAPACITY_DENSE_AREA_3670	(3670000)
@@ -452,7 +479,12 @@ struct ss_coul_nv_info{
     int c_offset_b;
     int limit_fcc;
     short temp[MAX_TEMPS];
+    char reserved[2];
+	char ndc_volt_dec_apk;
+    char ndcvolt_dec_cur_cycle;
     short real_fcc[MAX_TEMPS];
+    short basp_ndcvolt_cur_dec;
+    short basp_pdt_delay_cfg;
     /*below get data from fastboot,not need to save*/
     short calc_ocv_reg_v;
     short calc_ocv_reg_c;
@@ -467,13 +499,17 @@ struct ss_coul_nv_info{
 };
 
 struct hw_coul_nv_info{
-    int charge_cycles;
-    short temp[MAX_TEMPS];
-    short real_fcc[MAX_TEMPS];
+	int charge_cycles;
+	short temp[MAX_TEMPS];
+	short reserved1[2];
+	short real_fcc[MAX_TEMPS];
+	short reserved2[2];
 	short asw_protect_status;
 	short asw_protect_voltage;
 	short asw_temp_backup[MAX_TEMPS];
+	short reserved3[2];
 	short asw_real_fcc_backup[MAX_TEMPS];
+	short reserved4[2];
 	short asw_real_fcc_backup_flag;
 };
 
@@ -715,6 +751,7 @@ struct iscd_info {
     int isc_datum_init_retry;
 
     unsigned int ocv_update_interval;
+    unsigned int isc_sh_charger;
     int iscd_file_magic_num;
 };
 
@@ -786,6 +823,7 @@ struct smartstar_coul_device
     struct delayed_work    battery_check_delayed_work;
     struct delayed_work read_temperature_delayed_work;
 	struct delayed_work asw_protect_do_delayed_work;
+	struct delayed_work basp_read_pdt_para_work;
     struct iscd_info *iscd; /* this information should not in coul device */
     struct work_struct      fault_work;
     struct notifier_block   fault_nb;
@@ -810,6 +848,17 @@ struct smartstar_coul_device
 	int basp_need_delay;
 	int basp_batt_matched;
 	int basp_ver;
+	int basp_pdt_para_enable;
+	int basp_pdt_para_status;
+	short basp_pdt_delay_cfg;
+	unsigned short basp_ndcvolt_cur_dec;
+	unsigned char ndcvolt_dec_cur_cycle;
+	unsigned char volt_dec_cycle_step;
+	unsigned short ndc_volt_dec_step;
+	unsigned char ndcvdec_apk_disable;
+	unsigned int ndcvdec_close_process;
+	unsigned char ndc_volt_dec_apk;
+	unsigned int nondc_volt_dec;
     int soc_unlimited;
     int soc_monitor_flag;
     int soc_monitor_limit;
@@ -857,6 +906,22 @@ struct bit_delay_config {
 	unsigned char config_tag:7;
 	unsigned char delayed:1;
 };
+
+typedef struct {
+	unsigned int magic_num;
+	unsigned short ndc_volt_dec_step;
+	unsigned char batt_enable_flag;
+	unsigned char batt_num;
+	char batt_brand[BATT_BRAND_NUM_MAX][BATT_BRAND_STRING_MAX];
+	unsigned char delay_switch;
+	unsigned char delay_cfg_tag;
+	unsigned char delay_cycles;
+	unsigned char volt_dec_cycle_step;
+	unsigned char ndcvdec_apk_disable;
+	unsigned char reserved[15];
+	struct battery_aging_safe_policy policy[BASP_LEVEL_CNT];
+}basp_pdt_para;
+
 extern struct device *coul_dev;
 extern int v_offset_a;
 extern int v_offset_b;

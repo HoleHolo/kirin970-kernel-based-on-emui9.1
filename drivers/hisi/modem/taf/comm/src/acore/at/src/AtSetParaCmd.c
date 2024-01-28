@@ -29306,6 +29306,9 @@ VOS_UINT32 AT_ProcAuthPubkeyExData(
     {
         /* 当前不是收到第一条AT命令，需要拼接码流 */
         usTotalLen = (VOS_UINT16)ulParaLen + pstAuthPubKeyCtx->usParaLen;
+        if (usTotalLen < ulParaLen) {
+            return AT_ERROR;
+        }
         /*lint -save -e516 */
         pTempData = (VOS_UINT8*)PS_MEM_ALLOC(WUEPS_PID_AT, usTotalLen);
         /*lint -restore */
@@ -31178,8 +31181,11 @@ VOS_UINT32 AT_FillBodySarWcdmaPara(
 {
     VOS_UINT8                           ucLoop1;
     MTA_WCDMA_BAND_ENUM_UINT16          enLoop2;
-    VOS_UINT8                           ucLoop3;
+    VOS_UINT32                          ulLoop3;
 
+    pstBodySarWcdmaPara->ucParaNum = (VOS_UINT8)TAF_MIN(pstBodySarWcdmaPara->ucParaNum,
+        AT_BODYSARWCDMA_MAX_PARA_GROUP_NUM);
+    pstBodySarPara->usWBandNum = (VOS_UINT16)TAF_MIN(pstBodySarPara->usWBandNum, MTA_BODY_SAR_WBAND_MAX_NUM);
     /* 遍历命令所有的参数 */
     for (ucLoop1 = 0; ucLoop1 < pstBodySarWcdmaPara->ucParaNum; ucLoop1++)
     {
@@ -31191,15 +31197,15 @@ VOS_UINT32 AT_FillBodySarWcdmaPara(
                 continue;
             }
 
-            for (ucLoop3 = 0; ucLoop3 < pstBodySarPara->usWBandNum; ucLoop3++)
+            for (ulLoop3 = 0; ulLoop3 < pstBodySarPara->usWBandNum; ulLoop3++)
             {
-                if (enLoop2 == pstBodySarPara->astWBandPara[ucLoop3].enBand)
+                if (enLoop2 == pstBodySarPara->astWBandPara[ulLoop3].enBand)
                 {
                     break;
                 }
             }
 
-            if (ucLoop3 == pstBodySarPara->usWBandNum)
+            if (ulLoop3 == pstBodySarPara->usWBandNum)
             {
                 /* 若超出W Band最大支持个数，则回复失败 */
                 if (MTA_BODY_SAR_WBAND_MAX_NUM <= pstBodySarPara->usWBandNum)
@@ -31211,8 +31217,8 @@ VOS_UINT32 AT_FillBodySarWcdmaPara(
                 pstBodySarPara->usWBandNum++;
             }
 
-            pstBodySarPara->astWBandPara[ucLoop3].enBand = enLoop2;
-            pstBodySarPara->astWBandPara[ucLoop3].sPower = pstBodySarWcdmaPara->asPower[ucLoop1];
+            pstBodySarPara->astWBandPara[ulLoop3].enBand = enLoop2;
+            pstBodySarPara->astWBandPara[ulLoop3].sPower = pstBodySarWcdmaPara->asPower[ucLoop1];
         }
     }
 

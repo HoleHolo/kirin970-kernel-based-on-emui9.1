@@ -1556,11 +1556,14 @@ VOS_UINT32 AT_RcvTafCallCnapQryCnf(VOS_VOID *pstMsg)
             /* UCS2格式直接打印输出 */
             if (TAF_CALL_DCS_UCS2 == pstCnapQryCnf->stNameIndicator.enDcs)
             {
-                usLength += (VOS_UINT16)At_Unicode2UnicodePrint(AT_CMD_MAX_LEN,
+                if ((pstCnapQryCnf->stNameIndicator.ucLength * 2) < TAF_CALL_CNAP_NAME_STR_MAX_LENGTH)
+                {
+                    usLength += (VOS_UINT16)At_Unicode2UnicodePrint(AT_CMD_MAX_LEN,
                                                                 (VOS_CHAR *)pgucAtSndCodeAddr,
                                                                 pgucAtSndCodeAddr + usLength,
                                                                 pstCnapQryCnf->stNameIndicator.aucNameStr,
                                                                 pstCnapQryCnf->stNameIndicator.ucLength * 2);
+                }
             }
             else
             {

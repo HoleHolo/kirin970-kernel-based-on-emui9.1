@@ -6,5 +6,5 @@ USE zImage NOTE:
 2. If your phone already enable secboot feature, please decrypt or unlock the secboot feature first.
 3. Please make sure your phone software version is same with this release package, if not, please download the match version first.
 
-This kernel package is released for the phone software version 2019-11-29
+This kernel package is released for the phone software version 2021-11-17
 

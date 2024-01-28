@@ -2435,7 +2435,8 @@ VOS_UINT32  MN_MSG_Decode(
 VOS_UINT32   MN_MSG_Segment(
     const MN_MSG_SUBMIT_LONG_STRU       *pstLongSubmit,
     VOS_UINT8                           *pucNum,
-    MN_MSG_RAW_TS_DATA_STRU             *pstRawData
+    MN_MSG_RAW_TS_DATA_STRU             *pstRawData,
+    VOS_UINT32                           ulMaxSmsSegment
 );
 
 /*Concatenate long Sm */

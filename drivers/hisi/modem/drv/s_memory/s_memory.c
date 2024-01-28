@@ -65,7 +65,7 @@
 	(printk(KERN_ERR "[s_mem]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 struct mem_ctrl g_mem_ctrl;
 
-static int __init bsp_shared_mem_init(void)
+static int bsp_shared_mem_init(void)
 {
 	(void)memset_s((void *)&g_mem_ctrl, sizeof(struct mem_ctrl), 0x0, sizeof(struct mem_ctrl));
 	g_mem_ctrl.sddr_phy_addr  = (void*)HI_SHARED_DDR_BASE_ADDR;

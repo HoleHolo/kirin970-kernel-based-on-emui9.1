@@ -320,7 +320,7 @@ struct icc_dbg
 };
 
 void icc_sleep_flag_set(void);
-u32 fifo_get(struct icc_channel_fifo *fifo, u8 *data_buf, u32 data_len, u32 *read);
+u32 fifo_get(struct icc_channel_fifo *fifo, u32 channel_id, u8 *data_buf, u32 data_len, u32 *read);
 void icc_restore_recv_channel_flag(struct icc_channel_fifo * channel_fifo);
 s32 icc_channel_has_data(void);
 void icc_shared_sem_init(void);

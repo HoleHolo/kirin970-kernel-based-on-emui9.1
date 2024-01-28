@@ -88,7 +88,7 @@ s32 icc_channel_has_data(void)
 			{
 				while(read < write)
 				{
-					if(fifo_get(fifo, (u8 *)&packet, sizeof(packet), &read) != sizeof(packet))
+					if(fifo_get(fifo, ((u32)i << 16), (u8 *)&packet, sizeof(packet), &read) != sizeof(packet))
 					{
 						break;
 					}

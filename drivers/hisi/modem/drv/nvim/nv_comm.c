@@ -1641,7 +1641,6 @@ u32 nv_flushItem(nv_flush_item_s *flush_item)
         buff = vmalloc((unsigned long)len);
         if(NULL == buff)
         {
-            nv_printf("malloc mem failed 0x%x\n", flush_item->itemid, len);
             return BSP_ERR_NV_MALLOC_FAIL;
         }
 

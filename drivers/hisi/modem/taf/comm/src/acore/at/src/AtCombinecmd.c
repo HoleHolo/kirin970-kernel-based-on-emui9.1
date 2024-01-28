@@ -726,7 +726,7 @@ VOS_VOID At_FilterDCmdSpecCharacter(
     VOS_UINT8                   *pucPara
 )
 {
-    VOS_UINT16                  i;
+    VOS_UINT32                  i;
     VOS_UINT16                  usBeginPos;
     VOS_UINT32                  ulRet;
 
@@ -785,7 +785,7 @@ VOS_VOID At_FilterDCmdSpecCharacter(
         }
 
         *pulParaLen = *pulParaLen - 1;
-        TAF_MEM_MOVE_S(&(pucPara[i]), *pulParaLen - i, &(pucPara[i + 1]), *pulParaLen - i);
+        TAF_MEM_MOVE_S(pucPara + i, *pulParaLen - i, pucPara + i + 1, *pulParaLen - i);
         i--;
     }
 

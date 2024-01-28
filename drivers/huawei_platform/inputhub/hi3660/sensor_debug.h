@@ -135,6 +135,11 @@ typedef enum
     AR_ENVIRONMENT_END	= 0x20,
 } AR_ENVIRONMENT_TYPE;
 
+enum {
+	CALL_START = 0xa2,
+	CALL_STOP,
+};
+
 extern int register_sensorhub_debug_operation(const char *func_name,
 					      sensor_debug_pfunc op);
 extern int unregister_sensorhub_debug_operation(sensor_debug_pfunc op);

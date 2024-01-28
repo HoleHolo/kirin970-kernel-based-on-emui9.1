@@ -1495,6 +1495,27 @@ static int rpc_status_change(void)
 	}
 	return ret;
 }
+
+static int send_acc_filter_flag(unsigned long value)
+{
+	int ret;
+	write_info_t pkg_ap;
+
+	memset(&pkg_ap, 0, sizeof(pkg_ap));
+	hwlog_info("%s: value %lu\n", __func__, value);
+
+	memset(&pkg_ap, 0, sizeof(pkg_ap));
+	pkg_ap.tag = TAG_ACCEL;
+	pkg_ap.cmd = CMD_ACC_FILTER_REQ;
+	pkg_ap.wr_buf = &value;
+	pkg_ap.wr_len = sizeof(value);
+	ret = write_customize_cmd(&pkg_ap, NULL);
+	if (ret) {
+		hwlog_err("send acc filter flag %d to mcu fail, ret=%d\n", value, ret);
+		return ret;
+	}
+	return ret;
+}
 static ssize_t store_rpc_motion_req(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	unsigned long value = 0;
@@ -1503,6 +1524,10 @@ static ssize_t store_rpc_motion_req(struct device *dev, struct device_attribute 
 	}
 
 	hwlog_info("%s: rpc motion request val (%lu)\n", __FUNCTION__, value);
+	/* used for acc filter type flag */
+	if (value == CALL_START || value == CALL_STOP)
+		send_acc_filter_flag(value);
+
 	if ((value != 0) && (value != 1)) {
 		hwlog_err("%s:rpc set enable fail, invalid val\n", __FUNCTION__);
 		return size;

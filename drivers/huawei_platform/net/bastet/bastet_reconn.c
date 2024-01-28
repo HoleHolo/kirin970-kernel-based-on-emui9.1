@@ -86,7 +86,7 @@ static void bastet_notify_close(struct sock *sk, bst_ind_type type)
 	struct bst_sock_comm_prop comm_prop;
 	int ret = 0;
 
-	BASTET_LOGI("sk=%p, type=%d", sk, type);
+	BASTET_LOGI("type=%d", type);
 	ret = bastet_get_comm_prop(sk, &comm_prop);
 	if (ret != 0) {
 		BASTET_LOGE("Failed to get comm prop, ret=%d", ret);

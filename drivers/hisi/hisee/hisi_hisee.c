@@ -789,6 +789,7 @@ static int rpmb_ready_body(void *arg)
 	int find_part_res = HISEE_ERROR;
 	cosimage_version_info misc_version;
 	unsigned int hisee_hibench_flag = 1;
+	char *time = " 60000 1"; /* 60000 means 60s, 1 means vote id. */
 
 	misc_version.img_version_num[0] = 0;
 
@@ -850,6 +851,11 @@ static int rpmb_ready_body(void *arg)
 
 	check_and_print_result();
 	g_cos_image_upgrade_done = 1;
+
+	ret = hisee_poweron_timeout_func(time, 0);
+	if (ret != HISEE_OK)
+		pr_err("%s:power on hisee failed:%x\n", __func__, ret);
+
 	set_errno_and_return(ret);  /*lint !e1058*/
 }
 

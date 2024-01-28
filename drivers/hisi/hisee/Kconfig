@@ -128,3 +128,10 @@ config HISEE_HIGH_TEMP_PROTECT_SWITCH
 	default n
 	help
 	  whether hisee support high temperature protect switch
+
+config GENERAL_SEE_PINCODE
+	depends on HISI_HISEE
+	bool "general_see support pincode."
+	default n
+	help
+	  whether general_see support pincode

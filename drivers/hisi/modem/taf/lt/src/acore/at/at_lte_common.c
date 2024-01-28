@@ -204,18 +204,6 @@ int ftm_create_dir(char *path)
     return 0;
 }
 
-int ftm_open_dir(char *path)
-{
-    int fd;
-
-    fd = ftm_create_dir(path);
-    if(0 == fd)
-    {
-        fd = sys_open(path, O_RDONLY| O_DIRECTORY, 0);
-    }
-    return fd;
-}
-
 int ftm_close_dir(int fd)
 {
     sys_close(fd);

@@ -1087,6 +1087,9 @@ int kbase_gpu_mmap(struct kbase_context *kctx, struct kbase_va_region *reg, u64 
 		KBASE_DEBUG_ASSERT(alloc->imported.alias.aliased);
 		for (i = 0; i < alloc->imported.alias.nents; i++) {
 			if (alloc->imported.alias.aliased[i].alloc) {
+				// decompress the aliased region before setup GPU mapping.
+				kbase_get_compressed_alloc(alloc->imported.alias.aliased[i].alloc,
+					0, alloc->imported.alias.aliased[i].alloc->nents);
 				err = kbase_mmu_insert_pages(kctx->kbdev,
 						&kctx->mmu,
 						reg->start_pfn + (i * stride),
@@ -1096,8 +1099,9 @@ int kbase_gpu_mmap(struct kbase_context *kctx, struct kbase_va_region *reg, u64 
 						kctx->as_nr);
 				if (err)
 					goto bad_insert;
-
-				kbase_mem_phy_alloc_gpu_mapped(alloc->imported.alias.aliased[i].alloc);
+				/* Note: mapping count is tracked at alisa
+				 * creation time
+				 */
 			} else {
 				err = kbase_mmu_insert_single_page(kctx,
 					reg->start_pfn + i * stride,
@@ -1142,14 +1146,12 @@ bad_insert:
 		stride = reg->gpu_alloc->imported.alias.stride;
 		KBASE_DEBUG_ASSERT(reg->gpu_alloc->imported.alias.aliased);
 		while (i--)
-			if (reg->gpu_alloc->imported.alias.aliased[i].alloc) {
+			if (reg->gpu_alloc->imported.alias.aliased[i].alloc)
 				kbase_mmu_teardown_pages(kctx->kbdev,
 					&kctx->mmu,
 					reg->start_pfn + (i * stride),
 					reg->gpu_alloc->imported.alias.aliased[i].length,
 					kctx->as_nr);
-				kbase_mem_phy_alloc_gpu_unmapped(reg->gpu_alloc->imported.alias.aliased[i].alloc);
-			}
 	}
 
 	kbase_remove_va_region(reg);
@@ -1170,14 +1172,12 @@ int kbase_gpu_munmap(struct kbase_context *kctx, struct kbase_va_region *reg)
 		return 0;
 
 	if (reg->gpu_alloc && reg->gpu_alloc->type == KBASE_MEM_TYPE_ALIAS) {
-		size_t i;
 
 		err = kbase_mmu_teardown_pages(kctx->kbdev, &kctx->mmu,
 				reg->start_pfn, reg->nr_pages, kctx->as_nr);
-		KBASE_DEBUG_ASSERT(reg->gpu_alloc->imported.alias.aliased);
-		for (i = 0; i < reg->gpu_alloc->imported.alias.nents; i++)
-			if (reg->gpu_alloc->imported.alias.aliased[i].alloc)
-				kbase_mem_phy_alloc_gpu_unmapped(reg->gpu_alloc->imported.alias.aliased[i].alloc);
+		/* We mark the source allocs as unmapped from the GPU when
+		 * putting reg's allocs
+		 */
 	} else {
 		err = kbase_mmu_teardown_pages(kctx->kbdev, &kctx->mmu,
 			reg->start_pfn, kbase_reg_current_backed_size(reg),
@@ -2359,8 +2359,10 @@ void kbase_mem_kref_free(struct kref *kref)
 		aliased = alloc->imported.alias.aliased;
 		if (aliased) {
 			for (i = 0; i < alloc->imported.alias.nents; i++)
-				if (aliased[i].alloc)
+				if (aliased[i].alloc) {
+					kbase_mem_phy_alloc_gpu_unmapped(aliased[i].alloc);
 					kbase_mem_phy_alloc_put(aliased[i].alloc);
+				}
 			vfree(aliased);
 		}
 		break;

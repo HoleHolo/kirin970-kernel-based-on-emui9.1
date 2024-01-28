@@ -143,7 +143,9 @@ extern VOS_UINT32 CTTF_HRPD_SigFidInit( enum VOS_INIT_PHASE_DEFINE ip );
 
 
 extern VOS_UINT32 PPPC_FidInit(enum VOS_INIT_PHASE_DEFINE ip);
-
+#if (FEATURE_ON == FEATURE_PPP)
+extern VOS_UINT32 PPPS_FidInit(enum VOS_INIT_PHASE_DEFINE ip);
+#endif
 /* 1x cproc begin */
 extern VOS_UINT32 UPHY_HPA_FidInit( enum VOS_INIT_PHASE_DEFINE ip );
 extern VOS_UINT32 LINKH_FidInit(enum VOS_INIT_PHASE_DEFINE enInitPhrase);
@@ -542,6 +544,9 @@ BEGIN_FID_DEFINITION()
     DEFINE_FID(ACPU_FID_PAM_OM) /* 提醒! 新增FID请按顺序添加到g_aenPsFidModemIdTbl表中 */
 #endif
 
+#if (FEATURE_ON == FEATURE_PPP)
+    DEFINE_FID(MSPS_FID_PPPS)
+#endif
 END_FID_DEFINITION()
 #endif  /*(OSA_CPU_CCPU == VOS_OSA_CPU)*/
 

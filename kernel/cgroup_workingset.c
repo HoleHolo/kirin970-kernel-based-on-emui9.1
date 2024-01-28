@@ -3226,7 +3226,8 @@ static bool workingset_adjust_page_lru(struct page *page)
 #endif
 #ifdef CONFIG_TASK_PROTECT_LRU
 			if (PageLRU(page) && !PageProtect(page) &&
-				!PageSwapBacked(page)) {
+				!PageSwapBacked(page) &&
+				!PageUnevictable(page)) {
 				struct list_head *head;
 
 				head = get_protect_head_lru(lruvec, page);
@@ -3234,7 +3235,8 @@ static bool workingset_adjust_page_lru(struct page *page)
 				adjusted = true;
 			}
 #else
-			if (PageLRU(page) && !PageSwapBacked(page)) {
+			if (PageLRU(page) && !PageSwapBacked(page) &&
+				!PageUnevictable(page)) {
 				list_move(&page->lru,
 					&lruvec->lists[page_lru(page)]);
 				adjusted = true;

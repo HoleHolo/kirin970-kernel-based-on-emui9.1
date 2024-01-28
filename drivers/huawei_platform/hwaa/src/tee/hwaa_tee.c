@@ -3,9 +3,12 @@
 #include <linux/spinlock.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
+#include <linux/init.h>
 #include <securec.h>
-#include "inc/base/macros.h"
+#include "inc/base/hwaa_define.h"
 #include "inc/base/hwaa_utils.h"
+EXPORT_SYMBOL(saved_command_line);
 
 static struct workqueue_struct *g_hwaa_workqueue = NULL;
 static u32 g_uid;
@@ -43,9 +46,9 @@ static s32 teec_err(TEEC_Result res)
 	case TEEC_ERROR_OUT_OF_MEMORY:
 		return ERR_MSG_OUT_OF_MEMORY;
 	case TEEC_ERROR_ITEM_NOT_FOUND:
-		return ERR_MSG_KERNEL_QZONE_CODE_NULL;
+		return ERR_MSG_KERNEL_PHASE1_KEY_NULL;
 	case TEEC_ERROR_MAC_INVALID:
-		return ERR_MSG_KERNEL_QZONE_CODE_NOTMATCH;
+		return ERR_MSG_KERNEL_PHASE1_KEY_NOTMATCH;
 	default:
 		return ERR_MSG_GENERATE_FAIL;
 	}
@@ -54,7 +57,7 @@ static s32 teec_err(TEEC_Result res)
 void hwaa_open_session(struct work_struct *work)
 {
 	u32 err_origin = 0;
-	TEEC_UUID uuid = BICDROID_KERNEL_TA_UUID;
+	TEEC_UUID uuid = HWAA_TA_UUID;
 	TEEC_Operation op;
 	TEEC_Result res;
 
@@ -196,7 +199,7 @@ static s32 teec_work_init(u8 *shmem, u32 shmem_size, hwaa_ta_cmd cmd,
 	INIT_WORK(&(teec_init_work->work), hwaa_invoke_ta);
 	ret = queue_work(g_hwaa_workqueue, &(teec_init_work->work));
 	if (ret == 0) {
-		hwaa_pr_err("send_request_towards_tee add work queue failed!");
+		hwaa_pr_err("teec_work_init add work queue failed!");
 		return ERR_MSG_GENERATE_FAIL;
 	}
 	wait_event(teec_init_work->notify_waitq, teec_init_work->response);
@@ -209,19 +212,19 @@ static s32 teec_work_init(u8 *shmem, u32 shmem_size, hwaa_ta_cmd cmd,
  * @return true for success
  */
 static bool build_shmem(u8 *shmem, u32 shmem_size, u64 profile_id,
-	const u8 *qcode, u32 qcode_length)
+	const u8 *cred, u32 cred_length)
 {
 	u32 size = shmem_size;
 	if (memcpy_s(shmem, size, &profile_id, sizeof(profile_id)) != EOK)
 		return false;
 	shmem += sizeof(profile_id);
 	size -= sizeof(profile_id);
-	if (memcpy_s(shmem, size, &qcode_length, sizeof(qcode_length))
+	if (memcpy_s(shmem, size, &cred_length, sizeof(cred_length))
 		!= EOK)
 		return false;
-	shmem += sizeof(qcode_length);
-	size -= sizeof(qcode_length);
-	if (memcpy_s(shmem, size, qcode, qcode_length) != EOK)
+	shmem += sizeof(cred_length);
+	size -= sizeof(cred_length);
+	if (memcpy_s(shmem, size, cred, cred_length) != EOK)
 	       return false;
 	return true;
 }
@@ -243,39 +246,39 @@ static bool init_send_operation_and_para(TEEC_Operation *op,
 	return true;
 }
 
-static bool check_para(const u8 *qcode, u32 qcode_length, u8 **phase1_key,
+static bool check_para(const u8 *cred, u32 cred_length, u8 **phase1_key,
 	u32 *phase1_key_size)
 {
-	if (!qcode || !phase1_key || !phase1_key_size)
+	if (!cred || !phase1_key || !phase1_key_size)
 		return false;
-	if (qcode_length != KERNEL_QZONE_SECRET_LENGTH)
+	if (cred_length != PHASE_1_KEY_LENGTH)
 		return false;
 
 	return true;
 }
 
-s32 send_qcode_request_towards_tee(u64 profile_id, const u8 *qcode,
-	u32 qcode_length, hwaa_ta_cmd cmd, u8 **phase1_key,
+s32 send_credential_request(u64 profile_id, const u8 *cred,
+	u32 cred_length, hwaa_ta_cmd cmd, u8 **phase1_key,
 	u32 *phase1_key_size)
 {
 	TEEC_Operation op;
 	TEEC_Result tee_res;
 	struct async_send_work_t teec_init_work;
 	u32 shmem_size;
-	u8 *shmem;
+	u8 *shmem = NULL;
 	s32 ret;
 
 	if (!init_send_operation_and_para(&op, &teec_init_work))
 		return ERR_MSG_GENERATE_FAIL;
-	if (!check_para(qcode, qcode_length, phase1_key, phase1_key_size)) {
+	if (!check_para(cred, cred_length, phase1_key, phase1_key_size)) {
 		hwaa_pr_err("bad value");
-		return ERR_MSG_PAYLOAD_FORMAT_ERROR;
+		return ERR_MSG_BAD_PARAM;
 	}
-	shmem_size = sizeof(profile_id) + sizeof(qcode_length) + qcode_length;
+	shmem_size = sizeof(profile_id) + sizeof(cred_length) + cred_length;
 	shmem = kzalloc(shmem_size, GFP_KERNEL);
 	if (!shmem)
 		return ERR_MSG_OUT_OF_MEMORY;
-	if (!build_shmem(shmem, shmem_size, profile_id, qcode, qcode_length)) {
+	if (!build_shmem(shmem, shmem_size, profile_id, cred, cred_length)) {
 		tee_res = TEEC_ERROR_GENERIC;
 		goto done;
 	}
@@ -289,23 +292,23 @@ s32 send_qcode_request_towards_tee(u64 profile_id, const u8 *qcode,
 		hwaa_pr_err("hwaa_invoke_ta failed,ret 0x%x", tee_res);
 		goto done;
 	}
-	if (op.params[0].tmpref.size != KERNEL_QZONE_SECRET_LENGTH) {
+	if (op.params[0].tmpref.size != PHASE_1_KEY_LENGTH) {
 		hwaa_pr_err("phase1 key size %ld is wrong",
 			    op.params[0].tmpref.size);
 		tee_res = TEEC_ERROR_GENERIC;
 		goto done;
 	}
-	*phase1_key = kzalloc(KERNEL_QZONE_SECRET_LENGTH, GFP_KERNEL);
+	*phase1_key = kzalloc(PHASE_1_KEY_LENGTH, GFP_KERNEL);
 	if (*phase1_key == NULL) {
 		tee_res = TEEC_ERROR_OUT_OF_MEMORY;
 		goto done;
 	}
-	if (memcpy_s(*phase1_key, KERNEL_QZONE_SECRET_LENGTH,
+	if (memcpy_s(*phase1_key, PHASE_1_KEY_LENGTH,
 		op.params[0].tmpref.buffer, op.params[0].tmpref.size)) {
 		tee_res = TEEC_ERROR_GENERIC;
 		goto done;
 	}
-	*phase1_key_size = KERNEL_QZONE_SECRET_LENGTH;
+	*phase1_key_size = PHASE_1_KEY_LENGTH;
 done:
 	kzfree(shmem);
 	shmem = NULL;

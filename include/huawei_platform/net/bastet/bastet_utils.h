@@ -66,8 +66,6 @@ bool is_channel_enable(void);
 bool is_cp_reset(void);
 bool is_sock_foreground(struct sock *sk);
 bool is_wifi_proxy(struct sock *sk);
-int bind_local_ports(u16 *local_port);
-int unbind_local_ports(u16 local_port);
 int get_bastet_sock_state(struct sock *sk);
 int get_fd_by_addr(struct addr_to_fd *guide);
 int get_pid_cmdline(struct get_cmdline *cmdline);

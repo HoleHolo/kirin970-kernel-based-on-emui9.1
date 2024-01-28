@@ -176,6 +176,7 @@ static void kernel_emcom_receive(struct sk_buff *__skb)
         }
     }
     mutex_unlock(&emcom_receive_sem);
+    consume_skb(__skb);
 }
 
 /* netlink socket thread,

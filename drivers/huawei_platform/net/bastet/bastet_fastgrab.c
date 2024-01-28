@@ -44,6 +44,7 @@ BST_FG_APP_INFO_STRU g_FastGrabAppInfo[BST_FG_MAX_APP_NUMBER];
 uid_t      g_CurrntAccUId;
 BST_FG_CUSTOM_STRU g_stBastetFgCustom;
 BST_FG_HONGBAO_STRU g_stBastetFgHongbao;
+spinlock_t g_fg_lock;
 /******************************************************************************
    6 º¯ÊýÊµÏÖ
 ******************************************************************************/
@@ -74,6 +75,7 @@ void BST_FG_Init(void)
 
 	g_stBastetFgHongbao.ucCongestionProcFlag = false;
 	g_stBastetFgHongbao.ucDurationTime = 0;
+	spin_lock_init(&g_fg_lock);
 }
 
 
@@ -144,6 +146,7 @@ static uint8_t BST_FG_ProcWXPacket_DL(
 
 	if (BST_FG_WECHAT_PUSH != pstSock->fg_Spec)
 		return 0;
+	spin_lock_bh(&g_fg_lock);
 	/**
 		 * Set the "PUSH"( 0 0 4 ) SIP-Command to be compared object.
 		*/
@@ -152,12 +155,14 @@ static uint8_t BST_FG_ProcWXPacket_DL(
 	bFound = BST_FG_ProcWXMatchKeyWord_DL(pstKwdIns,pData,ulLength);
 	if( bFound )
 	{
+		spin_unlock_bh(&g_fg_lock);
 		return 1;
 	}
 
 	pstKwdInsNew = BST_FG_GetAppIns(BST_FG_IDX_WECHAT)
 		->pstKws[BST_FG_FLAG_WECHAT_PUSH_NEW];
 	bFound = BST_FG_ProcWXMatchKeyWord_DL(pstKwdInsNew,pData,ulLength);
+	spin_unlock_bh(&g_fg_lock);
 	if( bFound )
 	{
 		return 1;

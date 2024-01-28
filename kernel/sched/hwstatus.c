@@ -14,7 +14,7 @@
 #include <linux/kallsyms.h>
 #include <linux/utsname.h>
 #include <linux/mempolicy.h>
-#include <log/log_usertype/log-usertype.h>
+#include <log/log_usertype.h>
 
 #include <asm/barrier.h>
 #include <asm/stacktrace.h>
@@ -137,7 +137,7 @@ typedef sched_hwstatus_rst_V3 sched_hwstatus_rst;
 static pid_t fgtasks[FGTASK_MAX] = {0};
 static u64 ktime_last = 0;
 static hwstatus_caller caller = {0};
-static hwstatus_stack  stack_dump = {0};
+static hwstatus_stack  stack_dump = {{0}};
 static u64 delta_max = 0;
 
 static void simple_record_stack(struct task_struct *tsk,char *buf, int max)
@@ -185,7 +185,9 @@ static void clearpid(pid_t pid)
 {
 	struct task_struct *taskp;
 	struct sched_statistics *ssp;
+#ifdef CONFIG_HW_MEMORY_MONITOR
 	unsigned long flags;
+#endif
 
 	taskp = find_task_by_vpid(pid);
 	if(!taskp){
@@ -213,12 +215,14 @@ static void clearpid(pid_t pid)
 	ssp->hwstatus.last_jiffies = jiffies;
 
 #ifdef CONFIG_HW_MEMORY_MONITOR
-	spin_lock_irqsave(&taskp->delays->allocpages_lock, flags);
-	taskp->delays->allocuser_delay = 0;
-	taskp->delays->allocuser_count = 0;
-	taskp->delays->allocuser_delay_max = 0;
-	taskp->delays->allocuser_delay_max_order = 0;
-	spin_unlock_irqrestore(&taskp->delays->allocpages_lock, flags);
+	if(taskp->delays){
+		spin_lock_irqsave(&taskp->delays->allocpages_lock, flags);
+		taskp->delays->allocuser_delay = 0;
+		taskp->delays->allocuser_count = 0;
+		taskp->delays->allocuser_delay_max = 0;
+		taskp->delays->allocuser_delay_max_order = 0;
+		spin_unlock_irqrestore(&taskp->delays->allocpages_lock, flags);
+	}
 #endif
 	put_task_struct(taskp);
 }
@@ -239,7 +243,7 @@ void sched_hwstatus_iodelay_caller(struct task_struct *tsk, u64 delta)
 	u64 delaymax;
 
 	if(BETA_USER != get_logusertype_flag()) {
-		return 0;
+		return;
 	}
 
 	if(tsk->in_iowait) {
@@ -339,10 +343,12 @@ static int sched_hwstatus_show(struct seq_file *m, void *v)
 		PN(iowait_count);
 		PN(statusp->sleep_count);
 #ifdef CONFIG_HW_MEMORY_MONITOR
-		PN(taskp->delays->allocuser_delay);
-		PN(taskp->delays->allocuser_count);
-		PN(taskp->delays->allocuser_delay_max);
-		PN(taskp->delays->allocuser_delay_max_order);
+		if(taskp->delays){
+			PN(taskp->delays->allocuser_delay);
+			PN(taskp->delays->allocuser_count);
+			PN(taskp->delays->allocuser_delay_max);
+			PN(taskp->delays->allocuser_delay_max_order);
+		}
 #endif
 		put_task_struct(taskp);
 	}
@@ -419,10 +425,17 @@ static ssize_t sched_hwstatus_read(struct file* file, char __user *buf,
 
 		if(version > VERSION_V1) {
 #ifdef CONFIG_HW_MEMORY_MONITOR
-			hwstatus_rst.mem[i].allocuser_delay = taskp->delays->allocuser_delay;
-			hwstatus_rst.mem[i].allocuser_count = taskp->delays->allocuser_count;
-			hwstatus_rst.mem[i].allocuser_delay_max = taskp->delays->allocuser_delay_max;
-			hwstatus_rst.mem[i].allocuser_delay_max_order = taskp->delays->allocuser_delay_max_order;
+			if(taskp->delays){
+				hwstatus_rst.mem[i].allocuser_delay = taskp->delays->allocuser_delay;
+				hwstatus_rst.mem[i].allocuser_count = taskp->delays->allocuser_count;
+				hwstatus_rst.mem[i].allocuser_delay_max = taskp->delays->allocuser_delay_max;
+				hwstatus_rst.mem[i].allocuser_delay_max_order = taskp->delays->allocuser_delay_max_order;
+			}else{
+				hwstatus_rst.mem[i].allocuser_delay = 0;
+				hwstatus_rst.mem[i].allocuser_count = 0;
+				hwstatus_rst.mem[i].allocuser_delay_max = 0;
+				hwstatus_rst.mem[i].allocuser_delay_max_order = 0;
+			}
 #else
 			hwstatus_rst.mem[i].allocuser_delay = 0;
 			hwstatus_rst.mem[i].allocuser_count = 0;

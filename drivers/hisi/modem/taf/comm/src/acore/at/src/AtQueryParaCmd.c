@@ -7451,7 +7451,7 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
     MTA_BODY_SAR_PARA_STRU             *pstBodySarPara,
     AT_BODYSARWCDMA_SET_PARA_STRU      *pstBodySarWcdmaPara)
 {
-    VOS_UINT8                           ucLoop1;
+    VOS_UINT32                          ulLoop1;
     VOS_UINT8                           ucLoop2;
     AT_NV_WG_RF_MAIN_BAND_STRU          stWGBand;
     VOS_UINT32                          ulTmpBand;
@@ -7469,11 +7469,11 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
         return VOS_ERR;
     }
 
-    for (ucLoop1 = 0; ucLoop1 < pstBodySarPara->usWBandNum; ucLoop1++)
+    for (ulLoop1 = 0; ulLoop1 < TAF_MIN(pstBodySarPara->usWBandNum, MTA_BODY_SAR_WBAND_MAX_NUM); ulLoop1++)
     {
         for (ucLoop2 = 0; ucLoop2 < pstBodySarWcdmaPara->ucParaNum; ucLoop2++)
         {
-            if (pstBodySarPara->astWBandPara[ucLoop1].sPower == pstBodySarWcdmaPara->asPower[ucLoop2])
+            if (pstBodySarPara->astWBandPara[ulLoop1].sPower == pstBodySarWcdmaPara->asPower[ucLoop2])
             {
                 break;
             }
@@ -7482,10 +7482,10 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
         if (ucLoop2 == pstBodySarWcdmaPara->ucParaNum)
         {
             pstBodySarWcdmaPara->ucParaNum++;
-            pstBodySarWcdmaPara->asPower[ucLoop2] =pstBodySarPara->astWBandPara[ucLoop1].sPower;
+            pstBodySarWcdmaPara->asPower[ucLoop2] =pstBodySarPara->astWBandPara[ulLoop1].sPower;
         }
 
-        pstBodySarWcdmaPara->aulBand[ucLoop2]   |= 0x00000001U << (pstBodySarPara->astWBandPara[ucLoop1].enBand - 1);
+        pstBodySarWcdmaPara->aulBand[ucLoop2]   |= 0x00000001U << (pstBodySarPara->astWBandPara[ulLoop1].enBand - 1);
         ulTmpBand                               |= pstBodySarWcdmaPara->aulBand[ucLoop2];
     }
 

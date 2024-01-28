@@ -736,13 +736,6 @@ static void do_dump(struct task_struct *task, int flag, int time_in_D_state)
 		pr_err("\"echo 0 > /proc/sys/kernel/hung_task_timeout_secs\""
 		       " disables this message.\n");
 		do_dump_task(task);
-#ifdef CONFIG_RWSEM_SPIN_ON_OWNER
-		if (task->mm && task->mm->mmap_sem.owner &&
-		    task->mm->mmap_sem.owner != RWSEM_READER_OWNED) {
-			pr_err("dump the semaphore owner task\n");
-			do_dump_task(task->mm->mmap_sem.owner);
-		}
-#endif
 		touch_nmi_watchdog();
 		if (flag & FLAG_DUMP_WHITE && (!hung_task_dump_and_upload)) {
 			hung_task_dump_and_upload++;

@@ -451,7 +451,6 @@ void hung_wp_screen_send_work(struct work_struct *work)
 static void hung_wp_screen_send(unsigned long pdata)
 {
     del_timer(&data.timer);
-    show_state_filter(TASK_UNINTERRUPTIBLE);
     printk(KERN_ERR "%s: hung_wp_screen_%d end !\n", __func__,data.tag_id);
     queue_work(data.workq, &data.send_work);
 }

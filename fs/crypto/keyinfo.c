@@ -842,10 +842,6 @@ int hwaa_get_context(struct inode *inode)
 	encoded_wfek = hwaa_do_get_attr(inode, HWAA_ENCODED_WFEK_SIZE);
 	if (!encoded_wfek)
 		return -ENOMEM;
-	if (inode->i_crypt_info) {
-		err = hwaa_has_access(encoded_wfek, HWAA_ENCODED_WFEK_SIZE);
-		goto free_encoded_wfek; // return anyway
-	}
 	err = hwaa_do_get_context(inode, &ctx);
 	if (err)
 		goto free_encoded_wfek;

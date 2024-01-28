@@ -90,7 +90,7 @@ VOS_VOID AT_ReadPlatformNV(VOS_VOID)
 {
     MODEM_ID_ENUM_UINT16                enModemID;
     PLATAFORM_RAT_CAPABILITY_STRU       stPlatFormRat;
-    VOS_UINT8                           ucRatIndex;
+    VOS_UINT32                          ulRatIndex;
     AT_MODEM_SPT_RAT_STRU              *pstAtSptRatList = VOS_NULL_PTR;
 
     TAF_MEM_SET_S(&stPlatFormRat, sizeof(stPlatFormRat), 0x00, sizeof(PLATAFORM_RAT_CAPABILITY_STRU));
@@ -110,26 +110,27 @@ VOS_VOID AT_ReadPlatformNV(VOS_VOID)
             pstAtSptRatList->ucPlatformSptLte        = VOS_FALSE;
             pstAtSptRatList->ucPlatformSptUtralTDD   = VOS_FALSE;
 
-            for (ucRatIndex = 0; ucRatIndex < stPlatFormRat.usRatNum; ucRatIndex++)
+            stPlatFormRat.usRatNum = AT_MIN(stPlatFormRat.usRatNum, PLATFORM_MAX_RAT_NUM);
+            for (ulRatIndex = 0; ulRatIndex < stPlatFormRat.usRatNum; ulRatIndex++)
             {
                 /* 平台支持LTE */
-                if (PLATFORM_RAT_LTE == stPlatFormRat.aenRatList[ucRatIndex])
+                if (PLATFORM_RAT_LTE == stPlatFormRat.aenRatList[ulRatIndex])
                 {
                     pstAtSptRatList->ucPlatformSptLte = VOS_TRUE;
                 }
                 /* 平台支持WCDMA */
-                if (PLATFORM_RAT_WCDMA == stPlatFormRat.aenRatList[ucRatIndex])
+                if (PLATFORM_RAT_WCDMA == stPlatFormRat.aenRatList[ulRatIndex])
                 {
                     pstAtSptRatList->ucPlatformSptWcdma = VOS_TRUE;
                 }
 
                 /* 平台支持TDS*/
-                if (PLATFORM_RAT_TDS == stPlatFormRat.aenRatList[ucRatIndex])
+                if (PLATFORM_RAT_TDS == stPlatFormRat.aenRatList[ulRatIndex])
                 {
                     pstAtSptRatList->ucPlatformSptUtralTDD = VOS_TRUE;
                 }
                 /* 平台支持GSM */
-                if (PLATFORM_RAT_GSM == stPlatFormRat.aenRatList[ucRatIndex])
+                if (PLATFORM_RAT_GSM == stPlatFormRat.aenRatList[ulRatIndex])
                 {
                     pstAtSptRatList->ucPlatformSptGsm = VOS_TRUE;
                 }

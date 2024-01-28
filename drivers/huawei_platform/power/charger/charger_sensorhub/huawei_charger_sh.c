@@ -66,6 +66,8 @@ struct hisi_charger_bootloader_info {
 	char reg[REG_NUM_SH];
 };
 
+/* TRUE: disable charger, FALSE: enable charger */
+static bool charger_disable_config[__MAX_DISABLE_CHAGER] = {0};
 static char reg_value[CHARGELOG_SIZE];
 static char reg_head[CHARGELOG_SIZE];
 static char bootloader_info[CHARGELOG_SIZE];
@@ -85,6 +87,8 @@ extern struct fcp_adapter_device_ops sh_fcp_fsa9688_ops;
 int notify_sensorhub(uint8_t stype, uint8_t rw);
 static int charge_send_notify_to_sensorhub(struct charge_device_info_sh *di);
 static void fcp_reg_dump(char* pstr);
+static void charge_wake_lock(void);
+void charge_wake_unlock(void);
 extern char *get_charger_info_p(void);
 extern int coul_get_battery_capacity(void);
 extern int coul_get_battery_fcc (void);
@@ -96,7 +100,52 @@ extern int coul_get_battery_cc (void);
 extern int coul_get_battery_delta_rc (void);
 extern int coul_get_battery_ocv (void);
 extern int coul_get_battery_resistance (void);
+extern bool is_hisi_mbox_suspend(void);
 
+static int get_real_charger_flag(void)
+{
+    int i;
+    bool charger_flag = FALSE;
+
+    for (i = 0; i < __MAX_DISABLE_CHAGER; i++) {
+        charger_flag |= charger_disable_config[i];
+    }
+
+    return !charger_flag;
+}
+
+int set_charger_disable_flags_sh(unsigned int val,
+    enum disable_charger_type type)
+{
+    enum charge_status_event events = VCHRG_POWER_NONE_EVENT;
+
+    if (pConfigOnDDr == NULL) {
+        hwlog_err("set_charge_status_flags_sh pConfigOnDDr is NULL\n");
+        return -1;
+    }
+
+    if (type < 0 || type >= __MAX_DISABLE_CHAGER) {
+        hwlog_err("Set charge status to %d with wrong type(%d) in"
+            " set_charge_status_flags_sh\n", val, type);
+        return -EINVAL;
+    }
+
+    if (charging_status == CHARGING_OPEN) {
+        charger_disable_config[type] = val;
+        pConfigOnDDr->g_di.sysfs_data.charge_enable =
+            get_real_charger_flag();
+        pConfigOnDDr->g_di.sysfs_data.charge_limit = TRUE;
+        events = pConfigOnDDr->g_di.sysfs_data.charge_enable ?
+            VCHRG_START_CHARGING_EVENT : VCHRG_NOT_CHARGING_EVENT;
+        hisi_coul_charger_event_rcv(events);
+        notify_sensorhub(CHARGE_SYSFS_ENABLE_CHARGER, 0);
+        hwlog_info("set charge status = %d with type(%d) in"
+            " set_charge_status_flags_sh\n",
+            pConfigOnDDr->g_di.sysfs_data.charge_enable, type);
+    }
+
+    return 0;
+}
 
 static int dcp_sh_set_enable_charger(unsigned int val)
 {
@@ -110,8 +159,9 @@ static int dcp_sh_set_enable_charger(unsigned int val)
 	if ((val < 0) || (val > 1)) {
 		return -1;
 	}
-
-	pConfigOnDDr->g_di.sysfs_data.charge_enable = val;
+	wake_lock_timeout(&wlock, TIMEOUT_SEC * HZ);
+	charger_disable_config[CHARGER_SYS_NODE] = !val;
+	pConfigOnDDr->g_di.sysfs_data.charge_enable = get_real_charger_flag();
 	pConfigOnDDr->g_di.sysfs_data.charge_limit = TRUE;
 	/*why should send events in this command?
 		   because it will get the /sys/class/power_supply/Battery/status immediately
@@ -121,11 +171,13 @@ static int dcp_sh_set_enable_charger(unsigned int val)
 			events = VCHRG_START_CHARGING_EVENT;
 	else
 			events = VCHRG_NOT_CHARGING_EVENT;
-	g_ops->set_charge_enable(pConfigOnDDr->g_di.sysfs_data.charge_enable);
 	hisi_coul_charger_event_rcv(events);
-	notify_sensorhub(CHARGE_SYSFS_ENABLE_CHARGER, 0);
-	hwlog_info("RUNNINGTEST set charge enable = %d\n", pConfigOnDDr->g_di.sysfs_data.charge_enable);
-
+	if (is_hisi_mbox_suspend() == false) {
+		g_ops->set_charge_enable(pConfigOnDDr->g_di.sysfs_data.charge_enable);
+		hwlog_info("hisi mbox is not in suspend, so notify to sensorhub\n");
+		notify_sensorhub(CHARGE_SYSFS_ENABLE_CHARGER, 0);
+	}
+	hwlog_info("dcp sh set charge enable = %d\n", pConfigOnDDr->g_di.sysfs_data.charge_enable);
 	return 0;
 }
 
@@ -481,6 +533,11 @@ static int charge_rename_charger_type(enum hisi_charger_type type,
 	return ret;
 }
 
+static void charger_event_notify(int event)
+{
+    blocking_notifier_call_chain(&charger_event_notify_head, event, NULL);
+}
+
 /**********************************************************
 *  Function:       charge_send_uevent
 *  Discription:    send charge uevent immediately after charger type is recognized
@@ -498,12 +555,15 @@ static void charge_send_uevent(struct charge_device_info_sh *di)
 
 	if (di->charger_source == POWER_SUPPLY_TYPE_MAINS) {
 		events = VCHRG_START_AC_CHARGING_EVENT;
+		charger_event_notify(CHARGER_START_CHARGING_EVENT);
 		hisi_coul_charger_event_rcv(events);
 	} else if (di->charger_source == POWER_SUPPLY_TYPE_USB) {
 		events = VCHRG_START_USB_CHARGING_EVENT;
+		charger_event_notify(CHARGER_START_CHARGING_EVENT);
 		hisi_coul_charger_event_rcv(events);
 	} else if (di->charger_source == POWER_SUPPLY_TYPE_BATTERY) {
 		events = VCHRG_STOP_CHARGING_EVENT;
+		charger_event_notify(CHARGER_STOP_CHARGING_EVENT);
 		hisi_coul_charger_event_rcv(events);
 	} else {
 		hwlog_err("[%s]error charger source!\n", __func__);
@@ -1297,7 +1357,8 @@ static ssize_t charge_sysfs_store(struct device *dev,
 	case CHARGE_SYSFS_ENABLE_CHARGER:
 		if ((strict_strtol(buf, 10, &val) < 0) || (val < 0) || (val > 1))
 			return -EINVAL;
-		pConfigOnDDr->g_di.sysfs_data.charge_enable = val;
+		charger_disable_config[CHARGER_SYS_NODE] = !val;
+		pConfigOnDDr->g_di.sysfs_data.charge_enable = get_real_charger_flag();
 		pConfigOnDDr->g_di.sysfs_data.charge_limit = TRUE;
 		/*why should send events in this command?
 		   because it will get the /sys/class/power_supply/Battery/status immediately

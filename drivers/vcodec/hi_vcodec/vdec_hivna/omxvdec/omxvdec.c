@@ -419,6 +419,24 @@ static HI_S32 omxvdec_compat_get_data(COMPAT_TYPE_E eType, HI_VOID __user *pUser
 	return ret;
 }
 
+static HI_S32 omxvdec_device_lock(unsigned int cmd, OMXVDEC_ENTRY *omxvdec)
+{
+	HI_BOOL scen_dent;
+	VDEC_MUTEX_LOCK(&omxvdec->vdec_mutex_sec_scd);
+	VDEC_MUTEX_LOCK(&omxvdec->vdec_mutex_sec_vdh);
+	scen_dent = VCTRL_Scen_Ident(cmd);
+	if (scen_dent == HI_FALSE) {
+		VDEC_MUTEX_UNLOCK(&omxvdec->vdec_mutex_sec_vdh);
+		VDEC_MUTEX_UNLOCK(&omxvdec->vdec_mutex_sec_scd);
+		dprint(PRN_ALWS, "%s : lock hw error\n", __func__);
+		return - EIO;
+	}
+	if (omxvdec->device_locked)
+		dprint(PRN_ALWS, "hw have locked\n");
+	omxvdec->device_locked = HI_TRUE;
+	return 0;
+}
+
 static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned long arg, COMPAT_TYPE_E type)
 {
 	HI_S32 ret;
@@ -438,11 +456,16 @@ static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned l
 	HI_S32            vdm_is_run;
 	HI_S32            fd_index;
 
+	CHECK_SCENE_EQ_RETURN(omxvdec == HI_NULL, "omxvdec is null");
+
+	if (cmd == VDEC_IOCTL_LOCK_HW)
+		return omxvdec_device_lock(cmd, omxvdec);
+
 	x_scene = VCTRL_Scen_Ident(cmd);
 #ifdef OMXVDEC_TVP_CONFLICT
-        CHECK_SCENE_EQ_RETURN(x_scene == HI_TRUE, "xxx scene");
+	CHECK_SCENE_EQ_RETURN(x_scene == HI_TRUE, "xxx scene");
 #endif
-	CHECK_RETURN(omxvdec != HI_NULL, "omxvdec is null");
+	CHECK_SCENE_EQ_RETURN(omxvdec == HI_NULL, "omxvdec is null");
 
 	memset(&vdec_msg, 0, sizeof(vdec_msg)); /* unsafe_function_ignore: memset */
 
@@ -471,7 +494,7 @@ static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned l
 
 			return -EIO;
 		}
-        // record clk_rate  for each instance
+		// record clk_rate  for each instance
 		g_VdecMapInfo[fd_index].clk_rate = clk_rate;
 
 		if (omxvdec->open_count > 1) {
@@ -586,22 +609,12 @@ static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned l
 		}
 		break;
 	/*lint -e454 -e456 -e455*/
-	case VDEC_IOCTL_LOCK_HW:
-		CHECK_SCENE_EQ_RETURN(x_scene == HI_FALSE, "lock hw error");
-		if (omxvdec->device_locked) {
-			dprint(PRN_ALWS, "hw have locked\n");
-		}
-		VDEC_MUTEX_LOCK(&omxvdec->vdec_mutex_sec_scd);
-		VDEC_MUTEX_LOCK(&omxvdec->vdec_mutex_sec_vdh);
-		omxvdec->device_locked = HI_TRUE;
-		break;
-
 	case VDEC_IOCTL_UNLOCK_HW:
 		CHECK_SCENE_EQ_RETURN(x_scene == HI_FALSE, "unlock hw error");
 		if (omxvdec->device_locked) {
+			omxvdec->device_locked = HI_FALSE;
 			VDEC_MUTEX_UNLOCK(&omxvdec->vdec_mutex_sec_vdh);
 			VDEC_MUTEX_UNLOCK(&omxvdec->vdec_mutex_sec_scd);
-			omxvdec->device_locked = HI_FALSE;
 		}
 		break;
 	/*lint +e454 +e456 +e455*/

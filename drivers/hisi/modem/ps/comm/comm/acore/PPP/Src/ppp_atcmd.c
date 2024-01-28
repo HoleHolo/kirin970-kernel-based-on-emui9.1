@@ -1,777 +1,332 @@
 /*
+ * Copyright (C) Huawei Technologies Co., Ltd. 2012-2015. All rights reserved.
+ * foss@huawei.com
  *
- * All rights reserved.
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
  *
- * This software is available to you under a choice of one of two
- * licenses. You may choose this file to be licensed under the terms
- * of the GNU General Public License (GPL) Version 2 or the 2-clause
- * BSD license listed below:
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ * Otherwise, the following license terms apply:
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
 
-
-/*****************************************************************************
-    协议栈打印打点方式下的.C文件宏定义
-*****************************************************************************/
-/*lint -e767  原因简述: 打点日志文件宏ID定义 */
-#define    THIS_FILE_ID        PS_FILE_ID_PPP_ATCMD_C
-/*lint +e767  */
-
+#include "ppp_atcmd.h"
+#include "ppps_pppa_interface.h"
+#include "ppp_input.h"
 #include "product_config.h"
-
-/******************************************************************************
-   1 头文件包含
-******************************************************************************/
-#include "PPP/Inc/ppp_public.h"
-#include "PPP/Inc/layer.h"
-#include "PPP/Inc/ppp_mbuf.h"
-#include "PPP/Inc/hdlc.h"
-#include "PPP/Inc/ppp_fsm.h"
-#include "PPP/Inc/lcp.h"
-#include "PPP/Inc/async.h"
-#include "PPP/Inc/auth.h"
-#include "PPP/Inc/ipcp.h"
-#include "PPP/Inc/pppid.h"
-#include "PPP/Inc/link.h"
-#include "PPP/Inc/ppp_atcmd.h"
-#include "PPP/Inc/ppp_input.h"
-#include "PPP/Inc/hdlc_software.h"
+#include "ppp_public.h"
+#include "NVIM_Interface.h"
 #include "acore_nv_stru_gucnas.h"
 #include "nv_stru_gucnas.h"
+#include "AdsDeviceInterface.h"
 
 
-/******************************************************************************
-   2 外部函数变量声明
-******************************************************************************/
-extern VOS_VOID PPP_ClearDataQ(VOS_VOID);
 
-extern VOS_UINT32 PPP_SavePcoInfo
-(
-    PPP_ID usPppId,
-    AT_PPP_IND_CONFIG_INFO_STRU *pstAtPppIndConfigInfo
-);
+#define THIS_FILE_ID            PS_FILE_ID_PPP_ATCMD_C
 
-extern VOS_VOID PPP_GetReqConfigInfo
-(
-    PPP_REQ_CONFIG_INFO_STRU    *pstPppReqConfigInfo,
-    AT_PPP_REQ_CONFIG_INFO_STRU *pstPppAtReqConfigInfo
-);
-/******************************************************************************
-   3 私有定义
-******************************************************************************/
+#define PPPA_DEF_MRU            1500
+#define PPPA_MIN_MRU            296
+#define PPPA_DEF_ECHO_LOST_CNT  0xFFFF
 
+typedef struct {
+    VOS_UINT16          mru;
+    VOS_UINT16          echoMaxLostCnt;
+    VOS_UINT32          winsEnable:1;
+    VOS_UINT32          chapEnable:1;
+    VOS_UINT32          papEnable:1;
+    VOS_UINT32          resv:29;
+}PPPA_CONFIG_INFO_STRU;
 
-/******************************************************************************
-   4 全局变量定义
-******************************************************************************/
-/* 保存从NV项中读取的WINS特性开关值*/
-extern VOS_UINT8                        g_ucPppConfigWins;
-
-/******************************************************************************
-   5 函数实现
-******************************************************************************/
-
-
-VOS_UINT32 PPP_InitHdlcConfig(PPP_ID usPppId)
+enum PPP_MSG_TYPE_ENUM
 {
-    PPP_HDLC_CONFIG_STRU               *pstHdlcConfig;
+    AT_PPP_CREATE_RAW_PPP_REQ  = 0x01,      /*PPP模块收到AT的CREATE RAW PPP指示*/
+    AT_PPP_RELEASE_RAW_PPP_REQ     /*PPP模块收到AT的RELEASE RAW PPP指示*/
+};
+typedef VOS_UINT32  PPP_MSG_TYPE_ENUM_UINT32;
 
+__STATIC_ PPPA_CONFIG_INFO_STRU   g_pppaCfg = {0};
 
-    if ((usPppId == 0) || (PPP_MAX_ID_NUM < usPppId))
-    {
-        return VOS_ERR;
-    }
-
-    pstHdlcConfig = PPP_CONFIG(usPppId);
-
-
-    pstHdlcConfig->pFunProcData            = PPP_HDLC_SOFT_ProcData;
-    pstHdlcConfig->pFunProcProtocolPacket  = PPP_HDLC_SOFT_ProcProtocolPacket;
-    pstHdlcConfig->pFunDisable             = VOS_NULL_PTR;
-    pstHdlcConfig->pFunProcAsFrmData       = VOS_NULL_PTR;
-
-    PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                 "\r\nPPP, PPP_InitHdlcConfig, INFO, Soft HDLC.\r\n");
-
-
-    return VOS_OK;
-}
-
-/*****************************************************************************
- Prototype      : Ppp_CreatePppReq
- Description    : 为AT模块"创建PPP链路"提供对应的API函数。
-
- Input          : ---
- Output         : ---创建成功后返回的PPP ID
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-VOS_UINT32 Ppp_CreatePppReq ( PPP_ID *pusPppId)
+VOS_VOID PPP_UpdateWinsConfig(VOS_UINT8 ucWins)
 {
-    PPP_ID pppid_get;
-
-    if(pusPppId == VOS_NULL)
-    {
-        return VOS_ERR;
-    }
-
-    /*从PPP ID数组中得到一个空闲的PPP ID*/
-    pppid_get = PppGetId();
-
-    PPP_MNTN_LOG1(PS_PID_APP_PPP, DIAG_MODE_COMM, PS_PRINT_NORMAL, "Ppp_CreatePppReq\r\n", pppid_get);
-
-    /*如果没有空闲的PPP ID*/
-    if(pppid_get == 0)
-    {
-        return VOS_ERR;
-    }
-
-    /*如果有空闲的PPP ID，首先将申请得到的PPP ID赋值给AT_CMD*/
-    *pusPppId = pppid_get;
-
-    /*然后调用PPP模块对应的函数*/
-    link_Init(PPP_LINK(pppid_get));
-
-    PPP_LINK(pppid_get)->phase = PHASE_ESTABLISH;
-
-    fsm_Up(&(PPP_LINK(pppid_get)->lcp.fsm));
-    fsm_Open(&(PPP_LINK(pppid_get)->lcp.fsm));
-
-    /*释放PPP数据队列*/
-    PPP_ClearDataQ();
-
-    /* 初始化HDLC相关配置 */
-    PPP_InitHdlcConfig(pppid_get);
-
-    /* 可维可测信息上报*/
-    Ppp_EventMntnInfo(pppid_get, AT_PPP_CREATE_PPP_REQ);
-
-    /*返回正确*/
-    return VOS_OK;
+    g_pppaCfg.winsEnable = (ucWins == WINS_CONFIG_DISABLE) ? VOS_FALSE : VOS_TRUE;
 }
 
 
-/*****************************************************************************
- Prototype      : Ppp_CreateRawDataPppReq
- Description    : 创建PDP类型为PPP的PPP实体，但不做链路管理，只作数据的封装和解封装
+__STATIC_ VOS_VOID PPPA_SendPppsCreateInd(VOS_VOID)
+{
+    PPPA_PPPS_CreatePpp           *createPppInd = VOS_NULL_PTR;
 
- Input          : ---
- Output         : ---创建成功后返回的PPP ID
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
+    createPppInd = (PPPA_PPPS_CreatePpp*)PS_ALLOC_MSG_WITH_HEADER_LEN(PS_PID_APP_PPP, sizeof(PPPA_PPPS_CreatePpp));
+    if (createPppInd == VOS_NULL_PTR) {
+        PPP_MNTN_LOG(PS_PRINT_WARNING, "alloc Msg Fail");
+        return;
+    }
+    
+    createPppInd->ulReceiverPid             = MSPS_PID_PPPS;
+    createPppInd->msgId                     = ID_PPPA_PPPS_CREATE_PPP_IND;
+    createPppInd->config.mru                = g_pppaCfg.mru;
+    createPppInd->config.chapEnable         = g_pppaCfg.chapEnable;
+    createPppInd->config.papEnable          = g_pppaCfg.papEnable;
+    createPppInd->config.winsEnable         = g_pppaCfg.winsEnable;
+    createPppInd->config.echoMaxLostCnt     = g_pppaCfg.echoMaxLostCnt;
 
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
+    (VOS_VOID)PS_SEND_MSG(PS_PID_APP_PPP, createPppInd);
+}
+
+VOS_VOID PPPA_InitCfgInfo(VOS_VOID) 
+{
+    PPP_CONFIG_MRU_TYPE_NV_STRU     mruNv  = {0};
+    WINS_CONFIG_STRU                winsNv = {0};
+    NV_TTF_PPP_CONFIG_STRU          cfgNv  = {0};
+    
+    g_pppaCfg.mru                  = PPPA_DEF_MRU;
+    if ((GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_PPP_CONFIG_MRU_Type, &mruNv, sizeof(mruNv)) == NV_OK) && 
+        (mruNv.usPppConfigType >= PPPA_MIN_MRU) && (mruNv.usPppConfigType <= PPPA_DEF_MRU)) {
+        g_pppaCfg.mru              = mruNv.usPppConfigType;
+    }
+
+    g_pppaCfg.winsEnable            = VOS_TRUE;
+    if ((GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_WINS_Config, &winsNv, sizeof(winsNv)) == NV_OK) && 
+        (winsNv.ucStatus != 0) && (winsNv.ucWins == WINS_CONFIG_DISABLE)) {
+        g_pppaCfg.winsEnable        = VOS_FALSE;
+    }
+
+    g_pppaCfg.echoMaxLostCnt = PPPA_DEF_ECHO_LOST_CNT;
+    g_pppaCfg.papEnable      = VOS_TRUE;
+    if (GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_PPP_CONFIG, &cfgNv, sizeof(cfgNv)) == NV_OK) {
+        g_pppaCfg.chapEnable        = cfgNv.enChapEnable;
+        g_pppaCfg.papEnable         = cfgNv.enPapEnable;
+        g_pppaCfg.echoMaxLostCnt    = cfgNv.usLcpEchoMaxLostCnt;
+    }
+}
+
+VOS_UINT32 Ppp_CreatePppReq(PPP_ID *pusPppId)
+{
+    if (PPPA_GetUsedFalg() == VOS_TRUE) {
+        return VOS_ERR;
+    }
+
+    PPPA_SetUsedFlag(VOS_TRUE);
+    *pusPppId = PPPA_PPP_ID;
+    PPPA_SendPppsCreateInd();
+
+    PPP_SetupHdlc(PPPA_PPP_ID, VOS_TRUE);
+    
+    return VOS_OK;
+}
+
+__STATIC_ VOS_VOID Ppp_EventMntnInfo(VOS_UINT16       usPppID, VOS_UINT32 ulEvent)
+{
+    PPP_EVENT_MNTN_INFO_STRU    event = {0};
+
+    event.ulReceiverCpuId = VOS_LOCAL_CPUID;
+    event.ulReceiverPid   = PS_PID_APP_PPP;
+    event.ulSenderCpuId   = VOS_LOCAL_CPUID;
+    event.ulSenderPid     = PS_PID_APP_PPP;
+    event.ulLength        = sizeof(event) - VOS_MSG_HEAD_LENGTH;
+
+    event.ulMsgname      = ulEvent;
+    event.usPppId        = usPppID;
+
+    PPP_MNTN_TRACE_MSG(&event);
+}
+
 VOS_UINT32 Ppp_CreateRawDataPppReq ( PPP_ID *pusPppId)
 {
-    PPP_ID  pppid_get;
-
-
-    if (VOS_NULL_PTR == pusPppId)
-    {
+    if (PPPA_GetUsedFalg() == VOS_TRUE) {
         return VOS_ERR;
     }
 
-    /*从PPP ID数组中得到一个空闲的PPP ID*/
-    pppid_get = PppGetId();
+    PPPA_SetUsedFlag(VOS_TRUE);
+    *pusPppId = PPPA_PPP_ID;
+    PPP_SetupHdlc(PPPA_PPP_ID, VOS_FALSE);
+    Ppp_EventMntnInfo(PPPA_PPP_ID, AT_PPP_CREATE_RAW_PPP_REQ);
 
-    /*如果没有空闲的PPP ID*/
-    if (0 == pppid_get)
-    {
-        return VOS_ERR;
-    }
-
-    /* PPP类型PDP激活时，无法得知TE和网络端的协商结果，强制赋值 */
-    PPP_LINK(pppid_get)->lcp.his_accmap = 0xffffffff;
-
-    /*如果有空闲的PPP ID，首先将申请得到的PPP ID赋值给AT_CMD*/
-    *pusPppId = pppid_get;
-
-    /* 初始化HDLC相关配置 */
-    PPP_InitHdlcConfig(pppid_get);
-
-    /* 可维可测信息上报*/
-    Ppp_EventMntnInfo(pppid_get, AT_PPP_CREATE_RAW_PPP_REQ);
-
-    /*返回正确*/
     return VOS_OK;
-} /* Ppp_CreateRawDataPppReq */
-
-/*****************************************************************************
- Prototype      : Ppp_ReleasePpp
- Description    : 要释放的PPP链路
-
- Input          : ---要释放的PPP链路对应的PPP ID
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-VOS_VOID Ppp_ReleasePpp(PPP_ID usPppId)
-{
-    VOS_UINT32                          ulRet;
-
-    /* 如果当前PPP在PHASE_NETWORK阶段,属于网侧主动去激活
-       此时PPP等待和PC间PPP协议结束后通知AT拉管脚信号,并起定时器保护*/
-    if (PHASE_NETWORK == (PPP_LINK(usPppId)->phase))
-    {
-        if (VOS_NULL_PTR != (PPP_LINK(usPppId)->lcp.hLcpCloseTimer))
-        {
-            PS_STOP_REL_TIMER(&(PPP_LINK(usPppId)->lcp.hLcpCloseTimer));
-            PPP_LINK(usPppId)->lcp.hLcpCloseTimer= VOS_NULL_PTR;
-        }
-
-        /*起定时器,确保通知拉AT管脚信号*/
-        ulRet = VOS_StartRelTimer(&(PPP_LINK(usPppId)->lcp.hLcpCloseTimer),  PS_PID_APP_PPP,
-            1000,  TIMER_TERMINATE_PENDING,  (VOS_UINT32)usPppId,  VOS_RELTIMER_NOLOOP,  VOS_TIMER_PRECISION_5 );
-
-        if (VOS_OK != ulRet)
-        {
-            PPP_LINK(usPppId)->lcp.hLcpCloseTimer = VOS_NULL_PTR;
-            PPP_ProcPppDisconnEvent(usPppId);
-        }
-    }
-
-    /*首先调用PPP模块对应的函数*/
-    fsm_Close(&(PPP_LINK(usPppId)->lcp.fsm));
-
-    /*停止IPCP状态机定时器:*/
-    if( VOS_NULL_PTR !=((PPP_LINK(usPppId))->ipcp.fsm.timer) )
-    {
-        VOS_StopRelTimer(&((PPP_LINK(usPppId))->ipcp.fsm.timer));
-        (PPP_LINK(usPppId))->ipcp.fsm.timer = VOS_NULL_PTR;
-    }
-
-    /*停止CHAP状态机定时器:*/
-    if( VOS_NULL_PTR !=((PPP_LINK(usPppId))->chap.auth.hAuthTimer) )
-    {
-        VOS_StopRelTimer(&((PPP_LINK(usPppId))->chap.auth.hAuthTimer));
-        (PPP_LINK(usPppId))->chap.auth.hAuthTimer = VOS_NULL_PTR;
-    }
-
-    /*停止LCP状态机定时器:*/
-    if( VOS_NULL_PTR !=((PPP_LINK(usPppId))->lcp.fsm.timer) )
-    {
-        VOS_StopRelTimer(&((PPP_LINK(usPppId))->lcp.fsm.timer));
-        (PPP_LINK(usPppId))->lcp.fsm.timer = VOS_NULL_PTR;
-    }
-
-    /*停止LCP ECHO状态机定时器:*/
-    if (VOS_NULL_PTR != (PPP_LINK(usPppId))->hdlc.hTimerHandle)
-    {
-        if (VOS_OK != VOS_StopRelTimer(&((PPP_LINK(usPppId))->hdlc.hTimerHandle)))
-        {
-            (PPP_LINK(usPppId))->hdlc.hTimerHandle = VOS_NULL_PTR;
-        }
-    }
-
-    /*释放待PDP激活定时器*/
-    if (VOS_NULL_PTR != (PPP_LINK(usPppId)->ipcp.hIpcpPendTimer))
-    {
-        PS_STOP_REL_TIMER(&(PPP_LINK(usPppId)->ipcp.hIpcpPendTimer));
-        PPP_LINK(usPppId)->ipcp.hIpcpPendTimer = VOS_NULL_PTR;
-    }
-
-    /*释放待处理IPCP帧*/
-    if (VOS_NULL_PTR != (PPP_LINK(usPppId)->ipcp.pstIpcpPendFrame))
-    {
-        ppp_m_freem(PPP_LINK(usPppId)->ipcp.pstIpcpPendFrame);
-        PPP_LINK(usPppId)->ipcp.pstIpcpPendFrame = VOS_NULL_PTR;
-    }
-
-    PppFreeId(usPppId);
-
-    /* 不用释放PPP数据队列，因为只要队列里面有数据，PPP任务就会被调度起来处理，
-       如果HDLC处理完成而PPP实体已经释放，那么封装或解封装出来的数据自然会被丢弃。
-       这个API会在AT任务里被调用，如果这里把数据放掉，PPP任务有可能正在使用 */
-    PPP_ClearDataQ();
-
-    return;
 }
 
-/*****************************************************************************
- Prototype      : Ppp_ReleasePppReq
- Description    : 为AT模块"释放PPP链路"提供对应的API函数。
-
- Input          : ---要释放的PPP链路对应的PPP ID
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
 VOS_UINT32 Ppp_ReleasePppReq ( PPP_ID usPppId)
 {
-    /* 可维可测信息上报*/
-    Ppp_EventMntnInfo(usPppId, AT_PPP_RELEASE_PPP_REQ);
-
-    if(VOS_OK != PppIsIdValid(usPppId))
-    {
+    if (PPPA_GetUsedFalg() != VOS_TRUE) {
         return VOS_ERR;
     }
+    
+    PPPA_SetUsedFlag(VOS_FALSE);
+    PPP_ClearDataQ();
+    PPPA_SendPppsCommMsg(ID_PPPA_PPPS_RELEASE_PPP_IND);
 
-    Ppp_ReleasePpp(usPppId);
-
-    /*返回正确*/
     return VOS_OK;
 }
 
-/*****************************************************************************
- Prototype      : Ppp_ReleaseRawDataPppReq
- Description    : 为AT模块"释放PDP类型为PPP的PPP链路"提供对应的API函数。
-
- Input          : ---要释放的PPP链路对应的PPP ID
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
 VOS_UINT32 Ppp_ReleaseRawDataPppReq ( PPP_ID usPppId)
 {
-    /* 可维可测信息上报*/
-    Ppp_EventMntnInfo(usPppId, AT_PPP_RELEASE_RAW_PPP_REQ);
-
-    if(VOS_OK != PppIsIdValid(usPppId))
-    {
+    if (PPPA_GetUsedFalg() != VOS_TRUE) {
         return VOS_ERR;
     }
 
-    PppFreeId(usPppId);
+    PPPA_SetUsedFlag(VOS_FALSE);
+    PPP_ReleaseHdlc(PPPA_PPP_ID);
+    Ppp_EventMntnInfo(usPppId, AT_PPP_RELEASE_RAW_PPP_REQ);
 
-    /*返回正确*/
     return VOS_OK;
 }
 
-
-VOS_UINT32 PPP_ProcTeConfigInfo (VOS_UINT16 usPppId, PPP_REQ_CONFIG_INFO_STRU *pPppReqConfigInfo)
+__STATIC_ VOS_VOID PPPA_SendPppsPdpActRsp(PPPA_PDP_ACTIVE_RESULT_STRU *pdpActRslt)
 {
-    AT_PPP_REQ_CONFIG_INFO_STRU         stPppAtReqConfigInfo;
-    VOS_UINT32                          ulRet;
+    PPPA_PPPS_PdpActiveRsp           *pdpActRsp = VOS_NULL_PTR;
 
+    pdpActRsp = (PPPA_PPPS_PdpActiveRsp*)PS_ALLOC_MSG_WITH_HEADER_LEN(PS_PID_APP_PPP, sizeof(PPPA_PPPS_PdpActiveRsp));
+    if (pdpActRsp == VOS_NULL_PTR) {
+        PPP_MNTN_LOG(PS_PRINT_WARNING, "alloc Msg Fail");
+        return;
+    }
+    
+    pdpActRsp->ulReceiverPid    = MSPS_PID_PPPS;
+    pdpActRsp->msgId            = ID_PPPA_PPPS_PDP_ACTIVE_RSP;
+    pdpActRsp->result           = *pdpActRslt;
 
-    PPP_GetReqConfigInfo(pPppReqConfigInfo, &stPppAtReqConfigInfo);
-
-    ulRet = At_RcvTeConfigInfoReq(usPppId,&stPppAtReqConfigInfo);
-
-    /* 安全风险扫描，需要将栈上残留的敏感信息清除 */
-    PSACORE_MEM_SET(&(stPppAtReqConfigInfo.stAuth), sizeof(stPppAtReqConfigInfo.stAuth),
-        0x00, sizeof(stPppAtReqConfigInfo.stAuth));
-
-    return ulRet;
+    (VOS_VOID)PS_SEND_MSG(PS_PID_APP_PPP, pdpActRsp);
 }
 
-
-VOS_UINT32 PPP_ProcPppRelEvent (VOS_UINT16 usPppId)
-{
-    PPP_InitSecureData((VOS_UINT8)usPppId);
-
-    return At_RcvPppReleaseInd (usPppId);
-}
-
-
-VOS_UINT32 PPP_ProcPppDisconnEvent (VOS_UINT16 usPppId)
-{
-    PPP_InitSecureData((VOS_UINT8)usPppId);
-
-    return Ppp_SndPPPDisconnIndtoAT(usPppId);
-}
-
-/*****************************************************************************
- Prototype      : Ppp_RcvConfigInfoInd
- Description    : 为AT模块"PPP模块接收网侧指示的配置信息"提供对应的API函数。
-                  当AT向GGSN认证成功后，调用此函数向PPP发指示。
-
- Input          : usPppId---要发指示的PPP链路所在的PPP ID
-                  pPppIndConfigInfo---从GGSN发来的该PPP链路的IP地址等信息
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-VOS_UINT32 Ppp_RcvConfigInfoInd
-(
-    PPP_ID usPppId,
-    AT_PPP_IND_CONFIG_INFO_STRU         *pstAtPppIndConfigInfo
-)
+VOS_UINT32 Ppp_RcvConfigInfoInd(PPP_ID usPppId, PPPA_PDP_ACTIVE_RESULT_STRU *pstAtPppIndConfigInfo)
 {
     VOS_UINT8                               ucRabId = 0;
-
     VOS_UINT32                              ulResult;
 
-
-    if(VOS_OK != PppIsIdValid(usPppId))
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Invalid PPP Id %d",
-                      usPppId);
+    if (PPPA_GetUsedFalg() != VOS_TRUE) {
+        PPP_MNTN_LOG1(PS_PRINT_WARNING, "PPP not ues", usPppId);
         return VOS_ERR;
     }
 
-
     /* 通过usPppId，寻找到usRabId */
-    if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) )
-    {
-        PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Can not get PPP Id %d, RabId %d",
-                      usPppId, ucRabId);
-
+    if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) ) {
+        PPP_MNTN_LOG2(PS_PRINT_NORMAL, "Can not get PPP Id", usPppId, ucRabId);
         return VOS_ERR;
     }
 
     /* 这个时候PDP已经激活，注册上行数据接收接口。另外当前不支持PPP类型拨号。 */
     ulResult= ADS_DL_RegDlDataCallback(ucRabId, (RCV_DL_DATA_FUNC)PPP_PushPacketEvent, 0);
-
     if ( VOS_OK != ulResult )
     {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Register DL CB failed! RabId %d",
-                      ucRabId);
+        PPP_MNTN_LOG1(PS_PRINT_NORMAL, "Register DL CB failed", ucRabId);
 
         return VOS_ERR;
     }
 
-    /* 保存PCO信息 */
-    PPP_SavePcoInfo(usPppId, pstAtPppIndConfigInfo);
-
-    Ppp_RcvConfigInfoIndMntnInfo(usPppId, pstAtPppIndConfigInfo);
-
-    PPP_RcvAtCtrlOperEvent(usPppId, PPP_AT_CTRL_CONFIG_INFO_IND);
-
-    /*返回正确*/
-    return VOS_OK;
-}
-
-
-VOS_UINT32 PPP_RcvAtCtrlOperEvent(VOS_UINT16 usPppId, PPP_AT_CTRL_OPER_TYPE_ENUM_UINT32 ulCtrlOperType)
-{
-    PPP_AT_CTRL_OPERATION_MSG *pSndMsg;
-
-    if(PPP_AT_CTRL_BUTT <= ulCtrlOperType)
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_ERROR,
-                "PPP_RcvAtCtrlOperEvent:ulCtrlOperType ERROR!",(VOS_INT32)ulCtrlOperType);
-        return VOS_ERR;
-    }
-
-    pSndMsg = (PPP_AT_CTRL_OPERATION_MSG *)PS_ALLOC_MSG(PS_PID_APP_PPP, sizeof(PPP_AT_CTRL_OPERATION_MSG) - VOS_MSG_HEAD_LENGTH);
-
-    if (VOS_NULL_PTR == pSndMsg)
-    {
-        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-            "PPP, PPP_RcvAtCtrlOperEvent, WARNING, Alloc msg fail!\r\n");
-        return VOS_ERR;
-    }
-
-    pSndMsg->ulReceiverCpuId    = VOS_LOCAL_CPUID;
-    pSndMsg->ulReceiverPid      = PS_PID_APP_PPP;
-    pSndMsg->ulMsgType          = PPP_AT_CTRL_OPERATION;
-    pSndMsg->usPppId            = usPppId;
-    pSndMsg->ulCtrlOpType       = ulCtrlOperType;
-
-    /*发送该消息:*/
-    if ( VOS_OK != PS_SEND_MSG(PS_PID_APP_PPP, pSndMsg) )
-    {
-        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                     "PPP, PPP_RcvAtCtrlOperEvent, WARNING, Send msg fail!\r\n");
-        return VOS_ERR;
-    }
+    PPPA_SendPppsPdpActRsp(pstAtPppIndConfigInfo);
 
     return VOS_OK;
 }
 
-
-
-VOS_UINT32 Ppp_SndPPPDisconnIndtoAT(VOS_UINT16 usPppId)
-{
-    AT_PPP_PROTOCOL_REL_IND_MSG_STRU    *pstMsg;
-    VOS_UINT32                           ulLength;
-
-
-    /* 可维可测信息上报*/
-    Ppp_EventMntnInfo(usPppId, PPP_PROTOCOL_RELEASED_IND);
-
-    if(PPP_MAX_ID_NUM < usPppId)
-    {
-        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_ERROR,"Ppp_SndPPPDisconnIndtoAT usPppId Wrong!\r\n");
-        return VOS_ERR;
-    }
-
-    /*向AT模块发送AT_PPP_RELEASE_IND_MSG*/
-    ulLength    = sizeof(AT_PPP_PROTOCOL_REL_IND_MSG_STRU) - VOS_MSG_HEAD_LENGTH;
-    /*lint -e{516}*/
-    pstMsg      = (AT_PPP_PROTOCOL_REL_IND_MSG_STRU *)PS_ALLOC_MSG(PS_PID_APP_PPP, ulLength);
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        /*打印出错信息---申请消息包失败:*/
-        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_ERROR,"Ppp_SndPPPDisconnIndtoAT : PS_ALLOC_MSG Failed!\r\n");
-        return VOS_ERR;
-    }
-    /*填写消息头:*/
-    pstMsg->MsgHeader.ulSenderCpuId   = VOS_LOCAL_CPUID;
-    pstMsg->MsgHeader.ulSenderPid     = PS_PID_APP_PPP;
-    pstMsg->MsgHeader.ulReceiverCpuId = VOS_LOCAL_CPUID;
-    pstMsg->MsgHeader.ulReceiverPid   = WUEPS_PID_AT;
-    pstMsg->MsgHeader.ulLength        = ulLength;
-
-    pstMsg->MsgHeader.ulMsgName       = AT_PPP_PROTOCOL_REL_IND_MSG;
-    /*填写消息体:*/
-    pstMsg->usPppId                   = usPppId;
-
-    /*发送该消息*/
-    if (VOS_OK != PS_SEND_MSG(PS_PID_APP_PPP, pstMsg))
-    {
-        /*打印警告信息---发送消息失败:*/
-        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_ERROR,"Ppp_SndPPPDisconnIndtoAT : PS_SEND_MSG Failed!");
-        return VOS_ERR;
-    }
-
-    return VOS_OK;
-}
-
-
-
-VOS_UINT32 PPP_SavePcoInfo
-(
-    PPP_ID usPppId,
-    AT_PPP_IND_CONFIG_INFO_STRU *pstAtPppIndConfigInfo
-)
-{
-    struct ipcp                         *pstIpcp;
-    AT_PPP_PCO_IPV4_ITEM_STRU           *pstPcoIpv4Item;
-    VOS_UINT32                          ucIpv4Address;
-
-
-    pstIpcp        = &(PPP_LINK(usPppId)->ipcp);
-    pstPcoIpv4Item = &(pstAtPppIndConfigInfo->stPcoIpv4Item);
-
-
-    ua_htonl(pstAtPppIndConfigInfo->aucIpAddr, &ucIpv4Address);
-    PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_INFO,
-                  "PPP_SavePcoInfo, aucIpAddr %x\r\n",
-                  ucIpv4Address);
-    ua_htonl(pstPcoIpv4Item->aucPriDns, &ucIpv4Address);
-    PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_INFO,
-                  "PPP_SavePcoInfo, bitOpPriDns %d, aucPriDns %x\r\n",
-                  (VOS_INT)pstPcoIpv4Item->bitOpPriDns, ucIpv4Address);
-    ua_htonl(pstPcoIpv4Item->aucSecDns, &ucIpv4Address);
-    PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_INFO,
-                  "PPP_SavePcoInfo, bitOpSecDns %d, aucSecDns %x\r\n",
-                  (VOS_INT)pstPcoIpv4Item->bitOpSecDns, ucIpv4Address);
-    ua_htonl(pstPcoIpv4Item->aucPriNbns, &ucIpv4Address);
-    PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_INFO,
-                  "PPP_SavePcoInfo, bitOpPriNbns %d, aucPriNbns %x\r\n",
-                  (VOS_INT)pstPcoIpv4Item->bitOpPriNbns, ucIpv4Address);
-    ua_htonl(pstPcoIpv4Item->aucSecNbns, &ucIpv4Address);
-    PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_INFO,
-                  "PPP_SavePcoInfo, bitOpSecNbns %d, aucSecNbns %x\r\n",
-                  (VOS_INT)pstPcoIpv4Item->bitOpSecNbns, ucIpv4Address);
-
-    /* 保存主DNS服务器地址 */
-    if ( pstPcoIpv4Item->bitOpPriDns )
-    {
-        PSACORE_MEM_CPY(&(pstIpcp->PriDnsAddr.s_addr), IPV4_ADDR_LEN, pstPcoIpv4Item->aucPriDns, IPV4_ADDR_LEN);
-        pstIpcp->PriDns_neg |= NEG_ACCEPTED;
-    }
-
-    /* 保存辅DNS服务器地址 */
-    if ( pstPcoIpv4Item->bitOpSecDns )
-    {
-        PSACORE_MEM_CPY(&(pstIpcp->SecDnsAddr.s_addr), IPV4_ADDR_LEN, pstPcoIpv4Item->aucSecDns, IPV4_ADDR_LEN);
-        pstIpcp->SecDns_neg |= NEG_ACCEPTED;
-    }
-
-    /* 保存主NBNS服务器地址 */
-    if ( (pstPcoIpv4Item->bitOpPriNbns)
-         && (WINS_CONFIG_ENABLE == g_ucPppConfigWins))
-    {
-        PSACORE_MEM_CPY(&(pstIpcp->PriNbnsAddr.s_addr), IPV4_ADDR_LEN, pstPcoIpv4Item->aucPriNbns, IPV4_ADDR_LEN);
-        pstIpcp->PriNbns_neg |= NEG_ACCEPTED;
-    }
-
-    /* 保存辅NBNS服务器地址 */
-    if ( (pstPcoIpv4Item->bitOpSecNbns)
-         && (WINS_CONFIG_ENABLE == g_ucPppConfigWins))
-    {
-        PSACORE_MEM_CPY(&(pstIpcp->SecNbnsAddr.s_addr), IPV4_ADDR_LEN, pstPcoIpv4Item->aucSecNbns, IPV4_ADDR_LEN);
-        pstIpcp->SecNbns_neg |= NEG_ACCEPTED;
-    }
-
-    /* 参考Ppp_RcvConfigInfoInd实现，peer_ip填主机地址aucIpAddr */
-    PSACORE_MEM_CPY(&(pstIpcp->peer_ip.s_addr), IPV4_ADDR_LEN, pstAtPppIndConfigInfo->aucIpAddr, IPV4_ADDR_LEN);
-    pstIpcp->IpAddr_neg |= NEG_ACCEPTED;
-
-    /* 切换IPCP协商状态 */
-    if(pstIpcp->stage == IPCP_REQ_RECEIVED)
-    {
-        pstIpcp->stage = IPCP_SUCCESS_FROM_GGSN;
-    }
-
-    return VOS_OK;
-}
-
-
-VOS_VOID PPP_GetReqConfigInfo
-(
-    PPP_REQ_CONFIG_INFO_STRU    *pstPppReqConfigInfo,
-    AT_PPP_REQ_CONFIG_INFO_STRU *pstPppAtReqConfigInfo
-)
-{
-    PPP_AUTH_PAP_CONTENT_STRU           *pstSrcPapContent;
-    PPP_AUTH_CHAP_CONTENT_STRU          *pstSrcChapContent;
-    AT_PPP_AUTH_PAP_CONTENT_STRU        *pstDestPapContent;
-    AT_PPP_AUTH_CHAP_CONTENT_STRU       *pstDestChapContent;
-
-
-    pstPppAtReqConfigInfo->stAuth.ucAuthType = pstPppReqConfigInfo->stAuth.ucAuthType;
-
-    /* 获取PPP_AT_AUTH_CHAP_CONTENT_STRU */
-    if ( PPP_CHAP_AUTH_TYPE == pstPppReqConfigInfo->stAuth.ucAuthType )
-    {
-        pstDestChapContent = &(pstPppAtReqConfigInfo->stAuth.AuthContent.ChapContent);
-        pstSrcChapContent  = &(pstPppReqConfigInfo->stAuth.AuthContent.ChapContent);
-
-        pstDestChapContent->usChapChallengeLen = PS_MIN(pstSrcChapContent->usChapChallengeLen, PPP_CHAP_CHALLENGE_BUF_MAX_LEN);
-        pstDestChapContent->usChapResponseLen  = PS_MIN(pstSrcChapContent->usChapResponseLen, PPP_CHAP_RESPONSE_BUF_MAX_LEN);
-
-        PSACORE_MEM_CPY(pstDestChapContent->aucChapChallengeBuf, PPP_CHAP_CHALLENGE_BUF_MAX_LEN,
-            pstSrcChapContent->pChapChallenge, pstDestChapContent->usChapChallengeLen);
-
-        PSACORE_MEM_CPY(pstDestChapContent->aucChapResponseBuf, PPP_CHAP_RESPONSE_BUF_MAX_LEN,
-            pstSrcChapContent->pChapResponse, pstDestChapContent->usChapResponseLen);
-    }
-    /* 获取PPP_AT_AUTH_PAP_CONTENT_STRU */
-    else if ( PPP_PAP_AUTH_TYPE == pstPppReqConfigInfo->stAuth.ucAuthType )
-    {
-        pstDestPapContent = &(pstPppAtReqConfigInfo->stAuth.AuthContent.PapContent);
-        pstSrcPapContent  = &(pstPppReqConfigInfo->stAuth.AuthContent.PapContent);
-
-        pstDestPapContent->usPapReqLen = PS_MIN(pstSrcPapContent->usPapReqLen, PPP_PAP_REQ_BUF_MAX_LEN);
-
-        PSACORE_MEM_CPY(pstDestPapContent->aucPapReqBuf, PPP_PAP_REQ_BUF_MAX_LEN,
-            pstSrcPapContent->pPapReq, pstDestPapContent->usPapReqLen);
-    }
-    else
-    {
-        /* PPP_NO_AUTH_TYPE */
-    }
-
-    /* 获取PPP_AT_REQ_IPCP_CONFIG_INFO_STRU */
-    pstPppAtReqConfigInfo->stIPCP.usIpcpLen = pstPppReqConfigInfo->stIPCP.usIpcpLen;
-
-    PSACORE_MEM_CPY(pstPppAtReqConfigInfo->stIPCP.aucIpcp,
-               pstPppReqConfigInfo->stIPCP.usIpcpLen,
-               pstPppReqConfigInfo->stIPCP.pIpcp,
-               pstPppReqConfigInfo->stIPCP.usIpcpLen);
-
-    return;
-}
-
-/*****************************************************************************
- Prototype      : Ppp_RegDlDataCallback
- Description    : 为AT模块提供注册下行发送数据的API
-
- Input          : usPppId---要发指示的PPP链路所在的PPP ID
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2013-06-04
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
 VOS_UINT32 Ppp_RegDlDataCallback(PPP_ID usPppId)
 {
     VOS_UINT8                               ucRabId = 0;
-
     VOS_UINT32                              ulResult;
 
 
-    if(VOS_OK != PppIsIdValid(usPppId))
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RegDlDataCallback, WARNING, Invalid PPP Id %d",
-                      usPppId);
+    if (PPPA_GetUsedFalg() != VOS_TRUE) {
+        PPP_MNTN_LOG1(PS_PRINT_WARNING, "PPP not ues", usPppId);
         return VOS_ERR;
     }
 
-
     /* 通过usPppId，寻找到usRabId */
-    if (!PPP_PPPID_TO_RAB(usPppId, &ucRabId))
-    {
-        PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
-                      "PPP, Ppp_RegDlDataCallback, WARNING, Can not get PPP Id %d, RabId %d",
-                      usPppId, ucRabId);
+    if (!PPP_PPPID_TO_RAB(usPppId, &ucRabId)){
+        PPP_MNTN_LOG2(PS_PRINT_NORMAL, "Can not get PPP Id", usPppId, ucRabId);
 
         return VOS_ERR;
     }
 
     /* 这个时候PDP已经激活，注册上行数据接收接口 */
     ulResult= ADS_DL_RegDlDataCallback(ucRabId, (RCV_DL_DATA_FUNC)PPP_PushRawDataEvent, 0);
-
-    if ( VOS_OK != ulResult )
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RegDlDataCallback, WARNING, Register DL CB failed! RabId %d",
-                      ucRabId);
-
+    if ( VOS_OK != ulResult ) {
+        PPP_MNTN_LOG1(PS_PRINT_WARNING, "Register DL CB failed", ucRabId);
         return VOS_ERR;
     }
 
     return VOS_OK;
 }
 
+VOS_UINT32 PPP_RcvAtCtrlOperEvent(VOS_UINT16 pppId, PPP_AtCtrlOperTypeUint32 operType)
+{
+    PPP_AT_CtrlOperCmd  *ctrlOper = VOS_NULL_PTR;
+
+    if (operType >= PPP_AT_CTRL_BUTT) {
+        PPP_MNTN_LOG2(LOG_LEVEL_WARNING, "invalid para!", pppId, operType);
+        return VOS_ERR;
+    }
+
+    ctrlOper = (PPP_AT_CtrlOperCmd *)PS_ALLOC_MSG_WITH_HEADER_LEN(PS_PID_APP_PPP, sizeof(PPP_AT_CtrlOperCmd));
+    if (ctrlOper == VOS_NULL_PTR) {
+        PPP_MNTN_LOG2(LOG_LEVEL_WARNING, "alloc msg fail!", pppId, operType);
+        return VOS_ERR;
+    }
+
+    ctrlOper->msgHdr.ulReceiverPid = PS_PID_APP_PPP;
+    ctrlOper->msgHdr.msgId = ID_PPPA_AT_CTRL_OPERATION_MSG;
+    ctrlOper->msgHdr.pppId = pppId;
+    ctrlOper->operType = operType;
+
+    return PS_SEND_MSG(PS_PID_APP_PPP, ctrlOper);
+
+}
+
+VOS_VOID PPPA_AtCtrlOperMsgProc(PPP_InternalMsgHeader *msg)
+{
+    const PPP_AT_CtrlOperCmd *ctrlOper = (const PPP_AT_CtrlOperCmd *)msg;
+    PPP_AtCtrlOperTypeUint32 operType = ctrlOper->operType;
+    PPP_ID pppId = ctrlOper->msgHdr.pppId;
+
+    switch (operType) {
+        case PPP_AT_CTRL_REL_PPP_REQ:
+            Ppp_ReleasePppReq(pppId);
+            break;
+        case PPP_AT_CTRL_REL_PPP_RAW_REQ:
+            Ppp_ReleaseRawDataPppReq(pppId);
+            break;
+        case PPP_AT_CTRL_HDLC_DISABLE:
+            PPP_MNTN_LOG(LOG_LEVEL_WARNING, "Disable Hdlc");
+            break;
+        default:
+            PPP_MNTN_LOG1(LOG_LEVEL_WARNING, "operType is ERROR!", operType);
+            break;
+    }
+}
 
 

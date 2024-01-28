@@ -36,10 +36,6 @@
 #include <linux/android_aid.h>
 #endif
 
-#ifdef CONFIG_HWAA
-#include <huawei_platform/hwaa/hwaa_proc_hooks.h>
-#endif
-
 /*
  * If a non-root user executes a setuid-root binary in
  * !secure(SECURE_NOROOT) mode, then we raise capabilities.
@@ -805,9 +801,6 @@ static inline void cap_emulate_setxuid(struct cred *new, const struct cred *old)
  */
 int cap_task_fix_setuid(struct cred *new, const struct cred *old, int flags)
 {
-#ifdef CONFIG_HWAA
-	hwaa_proc_on_caps_setuid(current, new);
-#endif
 	switch (flags) {
 	case LSM_SETID_RE:
 	case LSM_SETID_ID:

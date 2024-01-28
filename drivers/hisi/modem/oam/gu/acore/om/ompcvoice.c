@@ -954,6 +954,8 @@ VOS_UINT32 PCV_AcpuFidInit(enum VOS_INIT_PHASE_DEFINE ip)
                 stPcvConfig.usPcVoiceSupportFlag =  VOS_FALSE;
             }
 
+            stPcvConfig.usPcVoiceSupportFlag =  VOS_FALSE;
+
             /*读取PcVoice在NV中的配置为1的时候才使能*/
             if(VOS_TRUE == stPcvConfig.usPcVoiceSupportFlag)
             {

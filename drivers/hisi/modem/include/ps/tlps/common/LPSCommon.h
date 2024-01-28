@@ -1,4 +1,50 @@
-
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2012-2021. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #ifndef __LPSCOMMON_H__
 #define __LPSCOMMON_H__
@@ -92,15 +138,11 @@ BYTE4  消息号:0~255
 #define PS_ERR_LOG_MSG_ID_BASE             0x8E00
 /* Modem errlog report, relation event lps-om message base address end */
 
-/* boston add begin */
-
-
 #if (FEATURE_ON == FEATURE_MODEM1_SUPPORT_LTE)
 #define LPS_MAX_MODEM_NUM                2
 #else
 #define LPS_MAX_MODEM_NUM                1
 #endif
-/* boston add end */
 
 #define NAS_MM_MAX_SHARE_PLMN_NUM       (16)
 
@@ -354,7 +396,9 @@ enum PS_MSG_ID_SECTION_ENUM
     PS_MSG_ID_DSDS_DEBUG_BASE  = PS_MSG_ID_IMSA_TO_IMSA_OM_BASE + 0x80,/*0x1e55*/
 
     PS_MSG_ID_IMSA_TO_ERRC_BASE = PS_MSG_ID_DSDS_DEBUG_BASE + 0x20,
+
     PS_MSG_ID_LPHY_TO_CSS_BASE  = PS_MSG_ID_IMSA_TO_ERRC_BASE + 0x20, /* 0x1e95 */
+
     /* KPI大数据信息 */
     PS_MSG_ID_TL_KPI_BASE       = PS_MSG_ID_LPHY_TO_CSS_BASE + 0x20,
     PS_MSG_ID_TL_PTL_BASE       = PS_MSG_ID_TL_KPI_BASE + 0x100,
@@ -373,12 +417,12 @@ enum PS_MSG_ID_SECTION_ENUM
 
     /* EMM给IMSA发送消息BASE */
     PS_MSG_ID_EMM_TO_IMSA_BASE = PS_MSG_ID_LRRC_TO_LPP_BASE + 0x20,
+
     PS_MSG_ID_ERRC_TO_IMSA_BASE = PS_MSG_ID_EMM_TO_IMSA_BASE + 0x20,
 
     /*L2发给IMSA消息的基址*/
     PS_MSG_ID_L2_TO_IMSA_BASE = PS_MSG_ID_ERRC_TO_IMSA_BASE + 0x20,
     
-    /* zhangdongfeng, 00353461 , add it for cellular prefer project, begin in 2016-09-28 */
     /* IMSA和CAS之间的消息接口取值范围 */
     PS_MSG_ID_IMSA_TO_CAS_BASE   = PS_MSG_ID_L2_TO_IMSA_BASE + 0x20, /* 0x2525 */
     PS_MSG_ID_CAS_TO_IMSA_BASE   = PS_MSG_ID_IMSA_TO_CAS_BASE + 0x20,
@@ -390,17 +434,19 @@ enum PS_MSG_ID_SECTION_ENUM
     /* IMSA和GRR之间的消息接口取值范围 */
     PS_MSG_ID_IMSA_TO_GRR_BASE   = PS_MSG_ID_WRR_TO_IMSA_BASE + 0x20,
     PS_MSG_ID_GRR_TO_IMSA_BASE   = PS_MSG_ID_IMSA_TO_GRR_BASE + 0x20,
-    /* zhangdongfeng, 00353461 , add it for cellular prefer project, end in 2016-09-28 */
-    
 
     /* RRC的路测消息ID是从0x8D00-0x8DFF */
     PS_MSG_ID_RRC_TO_DT_BASE  = PS_DT_MSG_ID_BASE,
 
-    /* Modem errlog report, relation event lps-om message base address begin */
     PS_MSG_ID_LPSOM_PS_BASE   = PS_ERR_LOG_MSG_ID_BASE,
-
 };
 
+/*****************************************************************************
+ 枚举名    : TL_KPI_MSG_ID_SECTION_ENUM
+ 枚举说明  : KPI各模块消息段
+ 1.日    期   : 2015年6月3日
+   修改内容   : 新建
+*****************************************************************************/
 enum TL_KPI_MSG_ID_SECTION_ENUM
 {
     TL_KPI_MSG_ID_LTE_NAS_BASE = PS_MSG_ID_TL_KPI_BASE,
@@ -411,7 +457,12 @@ enum TL_KPI_MSG_ID_SECTION_ENUM
     TL_KPI_MSG_ID_BUTT
 };
 
-
+/*****************************************************************************
+ 枚举名    : TL_DBG_MSG_ID_SECTION_ENUM
+ 枚举说明  : 各模块DEBUG消息段
+ 1.日    期   : 2015年8月28日
+   修改内容   : 新建
+*****************************************************************************/
 enum TL_DBG_MSG_ID_SECTION_ENUM
 {
     TL_DBG_MSG_ID_LTE_NAS_BASE = PS_MSG_ID_TL_DBG_BASE,
@@ -422,7 +473,12 @@ enum TL_DBG_MSG_ID_SECTION_ENUM
     TL_DBG_MSG_ID_BUTT
 };
 
-
+/*****************************************************************************
+ 枚举名    : TL_PTL_MSG_ID_SECTION_ENUM
+ 枚举说明  : PTL各模块消息段
+ 1.日    期   : 2015年7月20日
+   修改内容   : 新建
+*****************************************************************************/
 enum TL_PTL_MSG_ID_SECTION_ENUM
 {
     TL_PTL_MSG_ID_LTE_NAS_BASE = PS_MSG_ID_TL_PTL_BASE,
@@ -433,7 +489,12 @@ enum TL_PTL_MSG_ID_SECTION_ENUM
     TL_PTL_MSG_ID_BUTT
 };
 
-
+/*****************************************************************************
+ 枚举名    : TL_DT_MSG_ID_SECTION_ENUM
+ 枚举说明  : DT各模块消息段
+ 1.日    期   : 2015年7月20日
+   修改内容   : 新建
+*****************************************************************************/
 enum TL_DT_MSG_ID_SECTION_ENUM
 {
     TL_DT_MSG_ID_LTE_NAS_BASE = PS_MSG_ID_TL_DT_BASE,
@@ -473,14 +534,12 @@ enum UE_FUNC_MODULE_ID_ENUM
 {
     UE_MODULE_PS_ID             = 0x00,     /*UE的PS侧的统称*/
 
-    /*UE_MODULE_NAS_ID = 0x10,
- */
+    /*UE_MODULE_NAS_ID = 0x10 */
     UE_MODULE_ESM_ID            = PS_PID_ESM,
     UE_MODULE_MM_ID             = PS_PID_MM,
     UE_MODULE_RABM_ID           = PS_PID_RABM,
 
-    /*UE_MODULE_RRC_ID = 0x40,
- */
+    /*UE_MODULE_RRC_ID = 0x40 */
     UE_MODULE_ERRC_ID           = PS_PID_ERRC,
     UE_MODULE_ERMM_ID           = PS_PID_ERMM,
     UE_MODULE_HPA_M_ID          = PS_PID_HPA,  /* 主线程中与RTT通信的HPA模块 */
@@ -515,8 +574,11 @@ enum UE_FUNC_MODULE_ID_ENUM
     UE_MODULE_NDIS_COM          = 0xF216,
 
     UE_MODULE_IMSA_ID           = 0xF217,
+
     UE_MODULE_LPP_ID           = 0xF218,
+
     UE_MODULE_LCS_ID           = 0xF219,
+
     UE_MODULE_BACKOFF_ID       = 0xF21a
 };
 typedef VOS_UINT32 UE_FUNC_MODULE_ID_ENUM_UINT32;
@@ -607,8 +669,8 @@ typedef VOS_UINT64 LPS_32K_TSTAMP_UINT64;
 typedef VOS_UINT64 LPS_MS_TSTAMP_UINT64;
 
 /*****************************************************************************
-?á11??3?    :NAS_MM_PLMN_ID_STRU?D
-ê1ó??μ?÷    :
+ 结构名     : NAS_MM_PLMN_ID_STRU?D
+ 结构说明   :
     MCC, Mobile country code (aucPlmnId[0], aucPlmnId[1] bits 1 to 4)
     MNC, Mobile network code (aucPlmnId[2], aucPlmnId[1] bits 5 to 8).
 
@@ -659,11 +721,6 @@ typedef struct
     VOS_UINT8                           ucRsv;
 }NAS_LPSCOMM_PLMN_ID_STRU;
 
-
-/*****************************************************************************
-?á11??3?    :NAS_MM_TAC_STRU
-ê1ó??μ?÷    :TACD??￠  24.301  9.9.3.26
-*****************************************************************************/
 typedef struct
 {
     VOS_UINT8                           ucTac;

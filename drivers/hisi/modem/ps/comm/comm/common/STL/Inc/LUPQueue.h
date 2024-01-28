@@ -113,6 +113,13 @@ typedef struct LUP_QUEUE
 *****************************************************************************/
 
 
+/*****************************************************************************
+  8 Fuction Extern
+  说明:
+  1、队列用于存放指针
+  2、出于通用性考虑，以下函数内存没有互斥操作，
+     如果队列用于任务间操作，则由调用者完成互斥操作
+*****************************************************************************/
 extern VOS_UINT32 LUP_IsQueEmpty(const LUP_QUEUE_STRU *pstQue);
 extern VOS_UINT32 LUP_IsQueFull(const LUP_QUEUE_STRU *pstQue);
 extern VOS_UINT32 LUP_PeekQueHead(const LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode);

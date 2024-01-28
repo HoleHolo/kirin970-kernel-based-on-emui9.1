@@ -1732,6 +1732,10 @@ typedef enum
     PS_FILE_ID_GASGCOMMIRATFSMLTEMEAS_C,
     PS_FILE_ID_GASGCOMMIRATFSMUTRANMEAS_C,
     PS_FILE_ID_GAS_GCOMMCUSTOMIZATION_C,
+    PS_FILE_ID_RRSHORTPD_C,
+    PS_FILE_ID_RRSHORTPDUPLINK_C,
+    PS_FILE_ID_ED_GSM_COMMON_CSN1CLIB_C,
+    PS_FILE_ID_TS44018SUPPORT_C,
 
     GAS_FILE_ID_BUTT = CAS_TEAM_FILE_ID - 1
 
@@ -3179,6 +3183,23 @@ typedef enum
                   PS_FILE_ID_NASLCSDECODE_C,
 
                   PS_FILE_ID_USIMM_ISIM_INIT_C,
+                  PS_FILE_ID_PPPS_SHEL_C,
+                  PS_FILE_ID_PPPS_ENTITY_C,
+                  PS_FILE_ID_PPPS_CORE_C,
+                  PS_FILE_ID_PPPS_CHAP_C,
+                  PS_FILE_ID_PPPS_PAP_C,
+                  PS_FILE_ID_PPPS_CAP_C,
+                  PS_FILE_ID_PPPS_CTRL_C,
+                  PS_FILE_ID_PPPS_LCP_C,
+                  PS_FILE_ID_PPPS_FSM_C,
+                  PS_FILE_ID_PPPS_IPCP_C,
+                  PS_FILE_ID_PPPS_UTILITY_C,
+                  PS_FILE_ID_PPPS_PPPA_PROC_C,
+                  PS_FILE_ID_PPP_RAND_C,
+                  PS_FILE_ID_PPP_CONVERT_C,
+                  PS_FILE_ID_PPP_DECODE_C,
+                  PS_FILE_ID_PPP_ENCODE_C,
+
                   PS_FILE_ID_BUTT
 
 }PS_FILE_ID_DEFINE_ENUM;

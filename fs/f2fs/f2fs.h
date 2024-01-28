@@ -2537,11 +2537,26 @@ static inline void f2fs_change_bit(unsigned int nr, char *addr)
 	*addr ^= mask;
 }
 
+#ifdef CONFIG_ACM
 #define F2FS_UNRM_PHOTO_FL	FS_UNRM_FL
 #define F2FS_UNRM_VIDEO_FL	0x00100000
+#define F2FS_UNRM_DMD_PHOTO_FL	0x02000000
+#define F2FS_UNRM_DMD_VIDEO_FL	0x04000000
 
-#define F2FS_FL_USER_VISIBLE	(FS_FL_USER_VISIBLE | F2FS_UNRM_VIDEO_FL)
-#define F2FS_FL_USER_MODIFIABLE	(FS_FL_USER_MODIFIABLE | F2FS_UNRM_VIDEO_FL)
+/* User visible flags */
+#define F2FS_FL_USER_VISIBLE	(FS_FL_USER_VISIBLE | F2FS_UNRM_VIDEO_FL | \
+					 F2FS_UNRM_DMD_PHOTO_FL | \
+					 F2FS_UNRM_DMD_VIDEO_FL)
+/* User modifiable flags */
+#define F2FS_FL_USER_MODIFIABLE	(FS_FL_USER_MODIFIABLE | F2FS_UNRM_VIDEO_FL | \
+					 F2FS_UNRM_DMD_VIDEO_FL | \
+					 F2FS_UNRM_DMD_PHOTO_FL)
+void acm_f2fs_init_cache(void);
+void acm_f2fs_free_cache(void);
+#else
+#define F2FS_FL_USER_VISIBLE		FS_FL_USER_VISIBLE /* User visible flags */
+#define F2FS_FL_USER_MODIFIABLE		FS_FL_USER_MODIFIABLE /* User modifiable flags */
+#endif
 
 #define F2FS_REG_FLMASK		(~(FS_DIRSYNC_FL | FS_TOPDIR_FL))
 #define F2FS_OTHER_FLMASK	(FS_NODUMP_FL | FS_NOATIME_FL | FS_UNRM_FL)
@@ -4036,5 +4051,7 @@ static inline bool f2fs_may_encrypt(struct inode *inode)
 	return 0;
 #endif
 }
+
+#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
 
 #endif

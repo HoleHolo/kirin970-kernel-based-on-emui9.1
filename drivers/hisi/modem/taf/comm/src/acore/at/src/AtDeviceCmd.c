@@ -2397,7 +2397,7 @@ VOS_UINT32 AT_String2Hex( VOS_UINT8 *nptr,VOS_UINT16 usLen, VOS_UINT32 *pRtn)
 {
     VOS_UINT32                          c     = 0;         /* current Char */
     VOS_UINT32                          total = 0;         /* current total */
-    VOS_UINT8                           Length = 0;        /* current Length */
+    VOS_UINT32                          Length = 0;        /* current Length */
 
     for (Length = 0; Length < usLen; Length++)
     {

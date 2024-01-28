@@ -78,7 +78,15 @@ int hi64xx_vad_init(struct snd_soc_codec *codec, struct hi64xx_irq *irq)
 	int ret = 0;
 
 	pr_info("%s enter\n",__FUNCTION__);
-
+	if (codec == NULL || codec->dev == NULL || codec->dev->of_node == NULL ||
+		irq == NULL) {
+		pr_err("param is NULL");
+		return -EINVAL;
+	}
+	if (of_property_read_bool(codec->dev->of_node, "hisilicon,dsp_soundtrigger_disable")) {
+		pr_info("dsp soundtrigger disable, not need init vad");
+		return 0;
+	}
 	vad_data = (struct hi64xx_vad_platform_data*)kzalloc(sizeof(struct hi64xx_vad_platform_data), GFP_KERNEL);
 	if (NULL == vad_data) {
 		pr_err("cannot allocate hisi 6402 vad platform data\n");
@@ -103,10 +111,19 @@ int hi64xx_vad_init(struct snd_soc_codec *codec, struct hi64xx_irq *irq)
 }
 EXPORT_SYMBOL(hi64xx_vad_init);
 
-int hi64xx_vad_deinit()
+int hi64xx_vad_deinit(struct snd_soc_codec *codec)
 {
 	if (!vad_data)
 		return -EINVAL;
+
+	if (codec == NULL || codec->dev == NULL || codec->dev->of_node == NULL) {
+		pr_err("param is NULL");
+		return -EINVAL;
+	}
+	if (of_property_read_bool(codec->dev->of_node, "hisilicon,dsp_soundtrigger_disable")) {
+		pr_info("dsp soundtrigger disable, not need deinit vad");
+		return 0;
+	}
 
 	wake_lock_destroy(&vad_data->soundtrigger_wake_lock);
 
