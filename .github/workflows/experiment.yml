@@ -1,4 +1,4 @@
-name: Build Kernel (HarmonyOS)
+name: Build Kernel (Experiment)
 
 on:
   workflow_dispatch:
