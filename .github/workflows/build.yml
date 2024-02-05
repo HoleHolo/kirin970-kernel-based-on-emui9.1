@@ -34,7 +34,7 @@ jobs:
         sudo apt install make python2 python-is-python2 git bc ccache curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
 
         # 克隆编译器仓库 | Clone the compiler repository
-        git clone https://github.com/kindle4jerry/aarch64-linux-android-4.9-bakup ./ToolChain --depth=1 -b master
+        git clone https://github.com/djb77/aarch64-linux-android-4.9 ./ToolChain --depth=1 -b master
 
     - name: Get Current Time
       id: get_time
