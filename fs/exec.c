@@ -67,10 +67,6 @@
 
 #include <trace/events/sched.h>
 
-#ifdef CONFIG_HWAA
-#include <huawei_platform/hwaa/hwaa_proc_hooks.h>
-#endif
-
 
 int suid_dumpable = 0;
 
@@ -1363,7 +1359,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 
 	/* An exec changes our domain. We are no longer part of the thread
 	   group */
-	current->self_exec_id++;
+	WRITE_ONCE(current->self_exec_id, current->self_exec_id + 1);
 	flush_signal_handlers(current, 0);
 }
 EXPORT_SYMBOL(setup_new_exec);
@@ -1816,7 +1812,7 @@ static int do_execveat_common(int fd, struct filename *filename,
 	current->fs->in_exec = 0;
 	current->in_execve = 0;
 	acct_update_integrals(current);
-	task_numa_free(current);
+	task_numa_free(current, false);
 	free_bprm(bprm);
 	kfree(pathbuf);
 	putname(filename);
@@ -1852,21 +1848,7 @@ int do_execve(struct filename *filename,
 {
 	struct user_arg_ptr argv = { .ptr.native = __argv };
 	struct user_arg_ptr envp = { .ptr.native = __envp };
-
-#ifdef CONFIG_HWAA
-	int pre_execve_ret = 0;
-	int execve_ret = 0;
-	if (IS_ERR(filename))
-		return PTR_ERR(filename);
-	pre_execve_ret = hwaa_proc_pre_execve(filename->name);
-	execve_ret = do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
-	if (!pre_execve_ret && !execve_ret) {
-		hwaa_proc_post_execve(current->tgid);
-	}
-	return execve_ret;
-#else
 	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
-#endif
 }
 
 int do_execveat(int fd, struct filename *filename,

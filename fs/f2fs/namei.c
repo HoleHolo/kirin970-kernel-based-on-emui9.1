@@ -30,6 +30,9 @@
 #define ACM_VIDEO	2
 #define ACM_PHOTO_HWBK	3
 #define ACM_VIDEO_HWBK	4
+#define ACM_NO_MEDIA	5
+
+#define ACM_NO_MEDIA_NAME	".nomedia"
 #endif
 
 static struct inode *f2fs_new_inode(struct inode *dir, umode_t mode)
@@ -264,7 +267,17 @@ int update_extension_list(struct f2fs_sb_info *sbi, const char *name,
 }
 
 #ifdef CONFIG_ACM
+/*
+ * To determine whether a given file name @s has the extension @sub
+ *
+ * Return:
+ * 2: @s has the extension @sub, but a hwbk file.
+ * 1: @s has the extension @sub, but NOT a hwbk file.
+ * 0: @s does NOT have the extension @sub
+ */
 #define MIN_FNAME_LEN 2
+#define EXT_HWBK_FILE 2
+#define EXT_NOT_HWBK_FILE 1
 static int is_media_extension(const unsigned char *s, const char *sub)
 {
 	size_t slen = strlen((const char *)s);
@@ -291,7 +304,7 @@ static int is_media_extension(const unsigned char *s, const char *sub)
 		return 0;
 
 	if (!strncasecmp((const char *)s + slen - sublen - hwbklen, sub, sublen))
-		return hwbklen ? 2 : 1;
+		return hwbklen ? EXT_HWBK_FILE : EXT_NOT_HWBK_FILE;
 	return 0;
 }
 
@@ -305,9 +318,9 @@ static int is_photo_file(struct dentry *dentry)
 
 	for (i = 0; ext[i]; i++) {
 		ret = is_media_extension(dentry->d_name.name, ext[i]);
-		if (ret == 1)
+		if (ret == EXT_NOT_HWBK_FILE)
 			return ACM_PHOTO;
-		else if (ret == 2)
+		else if (ret == EXT_HWBK_FILE)
 			return ACM_PHOTO_HWBK;
 	}
 
@@ -325,39 +338,93 @@ static int is_video_file(struct dentry *dentry)
 
 	for (i = 0; ext[i]; i++) {
 		ret = is_media_extension(dentry->d_name.name, ext[i]);
-		if (ret == 1)
+		if (ret == EXT_NOT_HWBK_FILE)
 			return ACM_VIDEO;
-		else if (ret == 2)
+		else if (ret == EXT_HWBK_FILE)
 			return ACM_VIDEO_HWBK;
 	}
 
 	return 0;
 }
 
-static int should_monitor_file(struct dentry *dentry)
+static int is_nomedia_file(struct dentry *dentry)
 {
-	struct inode *i = d_inode(dentry);
-	struct dentry *d;
+	if (strcmp(dentry->d_name.name, ACM_NO_MEDIA_NAME) == 0)
+		return ACM_NO_MEDIA;
+	else
+		return 0;
+}
+
+static int get_not_monitor_file_type(struct dentry *dentry)
+{
+	int file_type;
+
+	if ((file_type = is_photo_file(dentry)) != 0)
+		return file_type;
+	file_type = is_video_file(dentry);
+	return file_type;
+}
+
+static int get_monitor_file_type(struct inode *dir, struct dentry *dentry)
+{
 	int file_type = 0;
 
-	if (!S_ISREG(i->i_mode))
-		return 0;
+	if ((F2FS_I(dir)->i_flags &
+	    (F2FS_UNRM_DMD_PHOTO_FL | F2FS_UNRM_PHOTO_FL)) &&
+	    (file_type = is_photo_file(dentry)) != 0)
+		return file_type;
 
-	/* check if parent directory is set with FS_UNRM_FL */
-	d = dget_parent(dentry);
-	i = d_inode(d);
-
-	if ((F2FS_I(i)->i_flags & F2FS_UNRM_PHOTO_FL)){
-		file_type = is_photo_file(dentry);
-		if (file_type)
-			goto out;
-	}
-
-	if ((F2FS_I(i)->i_flags & F2FS_UNRM_VIDEO_FL))
+	if ((F2FS_I(dir)->i_flags &
+	    (F2FS_UNRM_DMD_VIDEO_FL | F2FS_UNRM_VIDEO_FL)))
 		file_type = is_video_file(dentry);
 
+	return file_type;
+}
+
+static int should_monitor_file(struct inode *dir, struct dentry *dentry,
+			       struct inode *dir2, struct dentry *dentry2,
+			       int *operation)
+{
+	struct inode *inode = d_inode(dentry);
+	int file_type = 0;
+	int op = *operation;
+	unsigned int flags = F2FS_UNRM_DMD_PHOTO_FL | F2FS_UNRM_DMD_VIDEO_FL |
+			     F2FS_UNRM_PHOTO_FL | F2FS_UNRM_VIDEO_FL;
+
+	if ((F2FS_I(dir)->i_flags & flags) == 0)
+		goto out;
+
+	/* check if parent directory is set with FS_UNRM_FL */
+	if (op == ACM_OP_DEL) {
+		if (!S_ISREG(inode->i_mode))
+			goto out;
+
+		if ((F2FS_I(dir)->i_flags &
+		    (F2FS_UNRM_PHOTO_FL | F2FS_UNRM_VIDEO_FL)) == 0)
+			*operation = ACM_OP_DEL_DMD;
+
+		file_type = get_monitor_file_type(dir, dentry);
+	} else if (op == ACM_OP_RNM) {
+		if (inode && !S_ISREG(inode->i_mode))
+			goto out;
+
+		file_type = get_monitor_file_type(dir, dentry);
+		if (!file_type)
+			goto out;
+		/* dst is not a monitor directory */
+		if ((F2FS_I(dir2)->i_flags & flags) == 0)
+			goto out;
+
+		/* dst is monitor directory, dst_name not photo/video type */
+		if (get_not_monitor_file_type(dentry2) == 0)
+			goto out;
+
+		file_type = 0;
+	} else if (op == ACM_OP_CRT || op == ACM_OP_MKD) {
+		file_type = is_nomedia_file(dentry);
+	}
+
 out:
-	dput(d);
 	return file_type;
 }
 
@@ -370,19 +437,145 @@ static void inherit_parent_flag(struct inode *dir, struct inode *inode)
 		F2FS_I(inode)->i_flags |= F2FS_UNRM_PHOTO_FL;
 	if (F2FS_I(dir)->i_flags & F2FS_UNRM_VIDEO_FL)
 		F2FS_I(inode)->i_flags |= F2FS_UNRM_VIDEO_FL;
+	if (F2FS_I(dir)->i_flags & F2FS_UNRM_DMD_PHOTO_FL)
+		F2FS_I(inode)->i_flags |= F2FS_UNRM_DMD_PHOTO_FL;
+	if (F2FS_I(dir)->i_flags & F2FS_UNRM_DMD_VIDEO_FL)
+		F2FS_I(inode)->i_flags |= F2FS_UNRM_DMD_VIDEO_FL;
 }
 
-static void get_real_pkg_name(char *pkgname, int len)
+char *g_last_pkg_cache = NULL;
+uid_t g_last_uid = -1;
+DEFINE_RWLOCK(acm_pkg_lock);
+
+inline void acm_f2fs_init_cache(void)
+{
+	if (!g_last_pkg_cache)
+		g_last_pkg_cache = kzalloc(ACM_PKGNAME_MAX, GFP_NOFS);
+}
+
+inline void acm_f2fs_free_cache(void)
+{
+	if (g_last_pkg_cache)
+		kfree(g_last_pkg_cache);
+	g_last_pkg_cache = NULL;
+}
+
+static void get_real_pkg_name(char *pkgname, struct task_struct *tsk,
+			      const uid_t *uid)
 {
 	int i;
+	int res;
+	struct task_struct *p_tsk = NULL;
 
-	pkgname[len - 1] = '\0';
-	for (i = 0; i < len && pkgname[i] != '\0'; i++) {
+	/* When the task's uid is not more than UID_BOUNDARY,
+	 * get pakege name and uid directly. Otherwise,
+	 * find it's parent until the uid of it's parent
+	 * is less than UID_BOUNDARY
+	 *
+	 * UID_BOUNDARY was defined in include/linux/acm_f2fs.h
+	 */
+	if (read_trylock(&acm_pkg_lock)) {
+		if (g_last_pkg_cache && g_last_uid == *uid) {
+			memcpy(pkgname, g_last_pkg_cache, ACM_PKGNAME_MAX);
+			read_unlock(&acm_pkg_lock);
+			return;
+		}
+		read_unlock(&acm_pkg_lock);
+	}
+
+	if (*uid >= UID_BOUNDARY) {
+		p_tsk = tsk;
+		while (__kuid_val(task_uid(p_tsk)) >= UID_BOUNDARY) {
+			if ((p_tsk->real_parent) != NULL) {
+				tsk = p_tsk;
+				p_tsk = p_tsk->real_parent->group_leader;
+			} else {
+				break;
+			}
+		}
+	}
+	res = get_cmdline(tsk, pkgname, ACM_PKGNAME_MAX - 1);
+	pkgname[res] = '\0';
+
+	/* Some package name has format like this:
+	 * real_package_name:child_package_name
+	 * We should keep only the real_package_name part.
+	 */
+	for (i = 0; i < ACM_PKGNAME_MAX && pkgname[i] != '\0'; i++) {
 		if (pkgname[i] == ':') {
 			pkgname[i] = '\0';
 			break;
 		}
 	}
+	if (write_trylock(&acm_pkg_lock)) {
+		if (g_last_pkg_cache) {
+			memcpy(g_last_pkg_cache, pkgname, ACM_PKGNAME_MAX);
+			g_last_uid = *uid;
+		}
+		write_unlock(&acm_pkg_lock);
+	}
+}
+
+/*
+ * Check whether the file can be deleted.
+ *
+ * Return 0 if the file can be deleted, -EOWNERDEAD or -EACCES if the file
+ * can NOT be deleted, and other values on error.
+ *
+ * -EOWNERDEAD indicates that the file is a media file that under delete
+ * monitor; -EACCES indicates that the file is a .hwbk file that should
+ * not be deleted.
+ */
+static int monitor_acm(struct inode *dir, struct dentry *dentry,
+		       struct inode *dir2, struct dentry *dentry2, int op)
+{
+	struct task_struct *tsk = NULL;
+	char *pkg = NULL;
+	uid_t uid;
+	int file_type;
+	int err = 0;
+	int logusertype = get_logusertype_flag();
+
+	/* oversea users do not need monitor */
+	if (logusertype == OVERSEA_USER ||
+	    logusertype == OVERSEA_COMMERCIAL_USER)
+		goto monitor_ret;
+
+	file_type = should_monitor_file(dir, dentry, dir2, dentry2, &op);
+	if (file_type == 0)
+		goto monitor_ret;
+
+	tsk = current->group_leader;
+	if (!tsk) {
+		err = -EINVAL;
+		goto monitor_ret;
+	}
+
+	pkg = kzalloc(ACM_PKGNAME_MAX, GFP_NOFS);
+	if (!pkg) {
+		err = -ENOMEM;
+		goto monitor_ret;
+	}
+
+	uid = __kuid_val(task_uid(tsk));
+	get_real_pkg_name(pkg, tsk, &uid);
+
+	err = acm_search(pkg, dentry, uid, file_type, op);
+	if (op == ACM_OP_DEL) {
+		if (err == -ENODATA) {
+			if ((file_type == ACM_PHOTO) ||
+			    (file_type == ACM_VIDEO))
+				err = -EOWNERDEAD;
+			else if ((file_type == ACM_PHOTO_HWBK) ||
+				 (file_type == ACM_VIDEO_HWBK))
+				err = -EACCES;
+		}
+	}
+
+	kfree(pkg);
+
+monitor_ret:
+	return err;
 }
 #endif
 
@@ -437,6 +630,11 @@ static int f2fs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 		f2fs_sync_fs(sbi->sb, 1);
 
 	f2fs_balance_fs(sbi, true);
+
+#ifdef CONFIG_ACM
+	/* dont affect creation, dont care error */
+	monitor_acm(dir, dentry, NULL, NULL, ACM_OP_CRT);
+#endif
 	return 0;
 out:
 	handle_failed_inode(inode);
@@ -662,9 +860,6 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 	struct inode *inode = d_inode(dentry);
 	struct f2fs_dir_entry *de;
 	struct page *page;
-#ifdef CONFIG_ACM
-	int logusertype = get_logusertype_flag();
-#endif
 	int err = -ENOENT;
 
 	trace_f2fs_unlink_enter(dir, dentry);
@@ -679,95 +874,10 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 	if (err)
 		return err;
 
-
 #ifdef CONFIG_ACM
-	/* oversea users do not need monitor*/
-	if (logusertype != OVERSEA_USER && logusertype != OVERSEA_COMMERCIAL_USER) {
-		struct task_struct *tsk, *p_tsk = NULL, *pp_tsk = NULL;
-		struct dentry *dent;
-		char *pkg;
-		uid_t uid;
-		int is_dir = S_ISDIR(inode->i_mode);
-		char *event;
-		char *envp[2];
-		int file_type = should_monitor_file(dentry);
-
-		if (file_type) {
-			tsk = current->group_leader;
-			if (!tsk) {
-				err = -EINVAL;
-				goto fail;
-			}
-			if (tsk->parent == NULL)
-				goto always_report;
-			p_tsk = tsk->parent->group_leader;
-			if (!p_tsk || p_tsk->parent == NULL)
-				goto always_report;
-			pp_tsk = p_tsk->parent->group_leader;
-always_report:
-			if (is_dir)
-				dent = dentry;
-			else
-				dent = dentry->d_parent;
-			event = kmalloc(300UL, GFP_NOFS);
-			if (event) {
-				scnprintf(event, 299UL, "UNLINK=%s@%s@%s@%s@%d",
-						tsk->comm,
-						p_tsk ? p_tsk->comm : "null",
-						pp_tsk ? pp_tsk->comm : "null",
-						dent->d_name.name, is_dir);
-				envp[0] = event;
-				envp[1] = NULL;
-				err = kobject_uevent_env(&sbi->s_kobj, KOBJ_CHANGE, envp);
-				kfree(event);
-				if (err == -ENOMEM)
-					goto fail;
-				else if (err)
-					pr_err("F2FS-fs: %s: failed to send uevent err %d\n",
-							__func__, err);
-			} else {
-				err = -ENOMEM;
-				goto fail;
-			}
-
-			pkg = (char *)kzalloc(100, GFP_NOFS);
-			if(!pkg) {
-				err = -ENOMEM;
-				goto fail;
-			}
-			/* When the task's uid is not more than 10000,get pakege name and uid directly.
-				Otherwise,find it's parent until the uid of it's parent is less than 10000 */
-			if (__kuid_val(task_uid(tsk)) >= 10000) {
-				p_tsk = tsk;
-				while ( __kuid_val(task_uid(p_tsk)) >= 10000) {
-					if ((p_tsk->real_parent) != NULL) {
-						tsk = p_tsk;
-						p_tsk = p_tsk->real_parent->group_leader;
-					} else {
-						break;
-					}
-				}
-			}
-			get_cmdline(tsk, pkg, 100);
-			get_real_pkg_name(pkg, 100);
-			uid = __kuid_val(task_uid(tsk));
-
-			pr_err("F2FS-fs: %s: dentry %pd PID %d cmdline %s uid %d\n",
-				__func__, dentry, task_pid_nr(tsk), pkg, uid);
-			if (acm_search(pkg, dentry, uid, file_type) != 0) {
-				if ((file_type == ACM_PHOTO) ||
-				    (file_type == ACM_VIDEO)) {
-					err = -EOWNERDEAD;
-				} else if ((file_type == ACM_PHOTO_HWBK) ||
-					   (file_type == ACM_VIDEO_HWBK)) {
-					err = -EACCES;
-				}
-				kfree(pkg);
-				goto fail;
-			}
-			kfree(pkg);
-		}
-	}
+	err = monitor_acm(dir, dentry, NULL, NULL, ACM_OP_DEL);
+	if (err)
+		goto fail;
 #endif
 
 	de = f2fs_find_entry(dir, &dentry->d_name, &page);
@@ -952,9 +1062,6 @@ static int f2fs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	inode->i_fop = &f2fs_dir_operations;
 	inode->i_mapping->a_ops = &f2fs_dblock_aops;
 	mapping_set_gfp_mask(inode->i_mapping, GFP_F2FS_HIGH_ZERO);
-#ifdef CONFIG_ACM
-	inherit_parent_flag(dir, inode);
-#endif
 
 	set_inode_flag(inode, FI_INC_LINK);
 	f2fs_lock_op(sbi);
@@ -971,6 +1078,12 @@ static int f2fs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 		f2fs_sync_fs(sbi->sb, 1);
 
 	f2fs_balance_fs(sbi, true);
+
+#ifdef CONFIG_ACM
+	inherit_parent_flag(dir, inode);
+	/* dont affect mkdir, dont care error */
+	monitor_acm(dir, dentry, NULL, NULL, ACM_OP_MKD);
+#endif
 	return 0;
 
 out_fail:
@@ -1189,6 +1302,11 @@ static int f2fs_rename(struct inode *old_dir, struct dentry *old_dentry,
 		if (err)
 			goto out_dir;
 	}
+
+#ifdef CONFIG_ACM
+	/* dont affect rename, dont care error */
+	monitor_acm(old_dir, old_dentry, new_dir, new_dentry, ACM_OP_RNM);
+#endif
 
 	if (new_inode) {
 
@@ -1422,6 +1540,11 @@ static int f2fs_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
 	f2fs_balance_fs(sbi, true);
 
 	f2fs_lock_op(sbi);
+
+#ifdef CONFIG_ACM
+	/* dont affect rename, dont care error */
+	monitor_acm(old_dir, old_dentry, new_dir, new_dentry, ACM_OP_RNM);
+#endif
 
 	/* update ".." directory entry info of old dentry */
 	if (old_dir_entry)

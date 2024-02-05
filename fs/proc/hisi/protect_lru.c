@@ -139,10 +139,6 @@ void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec, bool
 		lruvec->heads[num].pages += nr_pages;
 		__mod_zone_page_state(page_zone(page),
 				NR_PROTECT_LRU_BASE + lru, nr_pages);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
-		__mod_node_page_state(lruvec_pgdat(lruvec),
-				NR_PROTECT_LRU_BASE + lru, nr_pages);
-#endif
 	} else
 		head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
 
@@ -177,10 +173,6 @@ void del_page_from_protect_lru_list(struct page *page, struct lruvec *lruvec)
 		lruvec->heads[num].pages -= nr_pages;
 		__mod_zone_page_state(page_zone(page),
 				NR_PROTECT_LRU_BASE + lru, -nr_pages);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
-		__mod_node_page_state(lruvec_pgdat(lruvec),
-				NR_PROTECT_LRU_BASE + lru, -nr_pages);
-#endif
 	}
 }
 EXPORT_SYMBOL(del_page_from_protect_lru_list);
