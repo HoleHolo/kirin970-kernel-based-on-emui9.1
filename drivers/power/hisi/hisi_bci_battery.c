@@ -368,6 +368,9 @@ void bci_set_work_interval(int capacity, struct hisi_bci_device_info *di)
 #endif
 	if (capacity > CHG_CANT_FULL_THRESHOLD)
 		di->monitoring_interval = WORK_INTERVAL_REACH_FULL;
+
+	if (di->chargedone_stat && (hisi_bci_show_capacity() <= CHG_CANT_FULL_THRESHOLD))
+		di->monitoring_interval = WORK_INTERVAL_MAX;
 }
 /*******************************************************
   Function:       vth_correct_soc

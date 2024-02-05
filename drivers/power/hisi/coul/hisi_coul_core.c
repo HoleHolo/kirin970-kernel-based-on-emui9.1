@@ -134,6 +134,7 @@ static u32 batt_under_voltage_flag;
 ATOMIC_NOTIFIER_HEAD(coul_fault_notifier_list);
 static int basp_learned_fcc = 0;
 static struct battery_aging_safe_policy basp_policy[BASP_PARA_LEVEL];
+static struct battery_aging_safe_policy basp_policy_pdt[BASP_LEVEL_CNT];
 static enum BASP_FCC_LEARN_STATE {
     LS_UNKNOWN,
     LS_INIT,
@@ -148,6 +149,7 @@ static struct wake_lock coul_lock;
 static void iscd_clear_sampled_info(struct smartstar_coul_device *di);
 static void check_batt_critical_electric_leakage(struct smartstar_coul_device *di);
 static void isc_config_splash2_file_sync(struct iscd_info *iscd);
+static void basp_apply_pdt_para(struct smartstar_coul_device *di);
 static char dsm_buff[ISCD_DSM_LOG_SIZE_MAX] = { 0 };
 #ifdef CONFIG_HISI_DEBUG_FS
 int print_multi_ocv_threshold(void);
@@ -1729,7 +1731,12 @@ static int get_initial_params(struct smartstar_coul_device *di)
     di->high_pre_qmax     = pinfo->qmax;
     di->batt_limit_fcc    = pinfo->limit_fcc;
     di->batt_report_full_fcc_real = pinfo->report_full_fcc_real;
-	di->basp_delay_config = pinfo->basp_delay_config;
+    di->basp_delay_config = pinfo->basp_delay_config;
+    di->basp_pdt_delay_cfg = pinfo->basp_pdt_delay_cfg;
+    di->basp_ndcvolt_cur_dec = pinfo->basp_ndcvolt_cur_dec;
+    di->ndcvolt_dec_cur_cycle = pinfo->ndcvolt_dec_cur_cycle;
+	di->ndc_volt_dec_apk = pinfo->ndc_volt_dec_apk;
+
     v_offset_a = pinfo->v_offset_a==0?DEFAULT_V_OFF_A:pinfo->v_offset_a;
     v_offset_b = pinfo->v_offset_b==0?DEFAULT_V_OFF_B:pinfo->v_offset_b;
     if (c_offset_a) {
@@ -1748,8 +1755,14 @@ static int get_initial_params(struct smartstar_coul_device *di)
 
     coul_core_info("real use a/b value, v_offset_a=%d,v_offset_b=%d,c_offset_a=%d,c_offset_b=%d\n",v_offset_a,v_offset_b,c_offset_a,c_offset_b);
 
-	coul_core_info(BASP_TAG"basp_delay_config from nv: %4x\n",
-		di->basp_delay_config);
+    coul_core_info(BASP_TAG"basp_delay_config from nv: %x, basp_pdt_delay_cfg from nv: %x\n",
+        di->basp_delay_config, di->basp_pdt_delay_cfg);
+
+    coul_core_info(BASP_TAG"basp_ndcvolt_cur_dec from nv: %d, ndcvolt_dec_cur_cycle from nv: %d\n",
+        di->basp_ndcvolt_cur_dec, di->ndcvolt_dec_cur_cycle);
+
+	coul_core_info(BASP_TAG"ndc_volt_dec_apk from nv: %d\n",
+		di->ndc_volt_dec_apk);
 
     for (i=0; i<MAX_TEMPS; i++)
     {
@@ -1827,7 +1840,11 @@ static int save_nv_info(struct smartstar_coul_device *di)
 
     pinfo->report_full_fcc_real = di->batt_report_full_fcc_real;
 
-	pinfo->basp_delay_config = di->basp_delay_config;
+    pinfo->basp_delay_config = di->basp_delay_config;
+    pinfo->basp_pdt_delay_cfg = di->basp_pdt_delay_cfg;
+    pinfo->basp_ndcvolt_cur_dec = di->basp_ndcvolt_cur_dec;
+    pinfo->ndcvolt_dec_cur_cycle = di->ndcvolt_dec_cur_cycle;
+	pinfo->ndc_volt_dec_apk = di->ndc_volt_dec_apk;
 
     if (di->adjusted_fcc_temp_lut){
         for(i=0; i<di->adjusted_fcc_temp_lut->cols; i++)
@@ -1881,6 +1898,123 @@ static void battery_para_verification(struct smartstar_coul_device *di, struct p
 		di->batt_data->pc_temp_ocv_lut = current_pc_temp_ocv_lut;
 	}
 	coul_core_info("battery para changed ocv1 =%d,ocv2 =%d,ocv1-ocv2 =%d\n",ocv1, ocv2, ocv1-ocv2);
+}
+
+int coul_get_ndcvolt_dec_nv(unsigned int *volt_dec)
+{
+	struct smartstar_coul_device *di = g_smartstar_coul_dev;
+
+	if (!di || !volt_dec) {
+		coul_core_err("[%s]input param NULL\n", __func__);
+		return -1;
+	}
+
+	*volt_dec = di->basp_ndcvolt_cur_dec;
+	coul_core_err("apk get ndcvolt dec %d success\n", *volt_dec);
+
+	return 0;
+}
+
+int coul_set_ndcvolt_dec_apk(unsigned int new_dec)
+{
+	struct smartstar_coul_device *di = g_smartstar_coul_dev;
+	unsigned int cur_dec;
+
+	if (!di) {
+		coul_core_err("[%s]input param NULL\n", __func__);
+		return -1;
+	}
+
+	cur_dec = (unsigned int)di->ndc_volt_dec_apk;
+	if (new_dec == cur_dec || di->ndcvdec_apk_disable) {
+		return 0;
+	}
+	di->ndcvdec_close_process = new_dec == 0 ? TRUE : FALSE;
+	cur_dec = new_dec < BASP_MAX_MVOLT_DEC ? new_dec : BASP_MAX_MVOLT_DEC;
+	di->ndc_volt_dec_apk = (unsigned char)cur_dec;
+	di->is_nv_need_save = 1;
+	di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
+	coul_core_info("apk set ndcvolt dec to %d, close_process flag is %d\n",
+		di->ndc_volt_dec_apk, di->ndcvdec_close_process);
+
+	return 0;
+}
+
+static unsigned int get_basp_grade_ndcvolt_dec(unsigned int target_dec)
+{
+	struct smartstar_coul_device *di = g_smartstar_coul_dev;
+	unsigned char new_cycle;
+	unsigned char diff_cycle;
+	unsigned int cur_dec;
+	unsigned int new_dec;
+	unsigned int dec_step;
+	unsigned int round_dec;
+
+	if (!di) {
+		coul_core_err("[%s]input param NULL\n", __func__);
+		return -1;
+	}
+
+	if (!di->ndcvdec_apk_disable && di->ndc_volt_dec_apk &&
+		(di->ndcvdec_close_process == FALSE)) {
+		target_dec = max(target_dec, (unsigned int)di->ndc_volt_dec_apk);
+	}
+
+	cur_dec = (unsigned int)di->basp_ndcvolt_cur_dec;
+	new_cycle = (unsigned char)((di->batt_chargecycles / CHARGE_CYCLE_INDEX) & 0xFF);
+	dec_step = (unsigned int)di->ndc_volt_dec_step;
+
+	if (new_cycle >= di->ndcvolt_dec_cur_cycle) {
+		diff_cycle = new_cycle - di->ndcvolt_dec_cur_cycle;
+	} else {
+		diff_cycle = new_cycle - di->ndcvolt_dec_cur_cycle + 0xFF;
+	}
+
+	if (di->ndcvdec_close_process == TRUE) {
+		new_dec = target_dec;
+		di->ndcvdec_close_process = FALSE;
+	} else if ((di->basp_pdt_para_status == BASP_PDT_PARA_APPLY_DONE) &&
+		(cur_dec != target_dec) && (dec_step != 0)) {
+		dec_step = (diff_cycle >= di->volt_dec_cycle_step ? dec_step : 0);
+		if (cur_dec <= target_dec) {
+			new_dec = min(target_dec, cur_dec + dec_step);
+		} else {
+			if (cur_dec > dec_step) {
+				new_dec = max(target_dec, cur_dec - dec_step);
+			} else {
+				new_dec = 0;
+			}
+		}
+	} else if ((di->basp_pdt_para_status == BASP_PDT_PARA_DELAYING) && (cur_dec != 0)) {
+		new_dec = cur_dec;
+	} else {
+		new_dec = target_dec;
+	}
+
+	if ((di->ndcvolt_dec_cur_cycle != new_cycle && diff_cycle >= di->volt_dec_cycle_step) ||
+		cur_dec != new_dec) {
+		coul_core_info("nv_dec %d, nv_cycle %d, target_dec %d, new_cycle %d, new_dec %d\n",
+			cur_dec, di->ndcvolt_dec_cur_cycle, target_dec, new_cycle, new_dec);
+		di->basp_ndcvolt_cur_dec = (unsigned short)new_dec;
+		di->ndcvolt_dec_cur_cycle = (unsigned short)new_cycle;
+		di->is_nv_need_save = 1;
+		di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
+	}
+
+	if (di->ndc_volt_dec_step) {
+		if (target_dec >= new_dec || new_dec == 0) {
+			/* when increase round down */
+			round_dec = (new_dec / di->ndc_volt_dec_step) * di->ndc_volt_dec_step;
+		} else {
+			/* when decrease round up */
+			round_dec =
+				((new_dec - 1) / di->ndc_volt_dec_step + 1) * di->ndc_volt_dec_step;
+		}
+	} else {
+		round_dec = new_dec;
+	}
+
+	return round_dec;
 }
 
 static int battery_para_changed(struct smartstar_coul_device *di, int flag)
@@ -1944,17 +2078,25 @@ static void update_chargecycles(struct smartstar_coul_device *di)
         set_charge_cycles(di, di->batt_chargecycles + di->batt_soc_real/10 - di->charging_begin_soc/10);
         coul_core_info("new chargecycle=%d, added=%d\n", di->batt_chargecycles, di->batt_soc_real/10 - di->charging_begin_soc/10);
         hw_coul_update_chargecycles(di);/*update battery backup nv chargecycles*/
-	if (basp_mask_delay) {
-		temp_cycle =
-			(unsigned char)((di->batt_chargecycles / CHARGE_CYCLE_INDEX) & 0xff);
-		cfg = (struct bit_delay_config *)&(di->basp_delay_config);
-		if (di->basp_need_delay && (temp_cycle ==
-			(unsigned char)cfg->delay_cylces)) {
-			coul_core_info(BASP_TAG"basp delayed ok\n");
-			di->basp_need_delay = 0;
-			cfg->delayed = 1;
-		}
-	}
+        temp_cycle =
+            (unsigned char)((di->batt_chargecycles / CHARGE_CYCLE_INDEX) & 0xff);
+        if (basp_mask_delay) {
+            cfg = (struct bit_delay_config *)&(di->basp_delay_config);
+            if (di->basp_need_delay && (temp_cycle == (unsigned char)cfg->delay_cylces)) {
+                coul_core_info(BASP_TAG"basp delayed ok\n");
+                di->basp_need_delay = 0;
+                cfg->delayed = 1;
+            }
+        }
+        cfg = (struct bit_delay_config *) & (di->basp_pdt_delay_cfg);
+        coul_core_info("basp pdt status is %d, cur_calc_cycle is %d, target_cycle is %d\n",
+            di->basp_pdt_para_status, temp_cycle, cfg->delay_cylces);
+        if ((di->basp_pdt_para_status == BASP_PDT_PARA_DELAYING) &&
+            (temp_cycle == (unsigned char)cfg->delay_cylces)) {
+            coul_core_info(BASP_TAG"basp pdt policy delayed ok\n");
+            di->basp_pdt_para_status = BASP_PDT_PARA_DELAY_DONE;
+            cfg->delayed = 1;
+        }
         di->basp_level = get_basp_level(di);
     }
     else{
@@ -2577,6 +2719,27 @@ int coul_get_battery_fcc (void)
 
     return di->batt_fcc/1000;
 }
+
+ /*******************************************************
+   Function:	coul_get_isc_status
+   Description: isc status
+   Input:	NULL
+   Output:	NULL
+   Return:	isc_status
+ ********************************************************/
+unsigned int coul_get_isc_status (void)
+{
+	struct iscd_info *iscd;
+
+	if(!g_smartstar_coul_dev || !g_smartstar_coul_dev->iscd) {
+		coul_core_err("g_smartstar_coul_dev is Null found in %s\n", __func__);
+		return 0;
+	}
+	iscd = g_smartstar_coul_dev->iscd;
+
+	return iscd->isc_status;
+}
+
  /*******************************************************
   Function:        coul_get_battery_uuc
   Description:     battery unused capacity mah
@@ -2877,11 +3040,20 @@ int coul_get_battery_aging_safe_policy(AGING_SAFE_POLICY_TYPE *asp)
         return -1;
     }
 
+    if (di->basp_pdt_para_enable && (di->basp_pdt_para_status == BASP_PDT_PARA_DELAY_DONE)) {
+        basp_apply_pdt_para(di);
+    }
+
     for (i = 0; i < di->basp_total_level; i++) {
         if (di->basp_level == basp_policy[i].level) {
             asp->level = basp_policy[i].level;
             asp->dc_volt_dec = basp_policy[i].dc_volt_dec;
-            asp->nondc_volt_dec = basp_policy[i].nondc_volt_dec;
+            if (di->basp_pdt_para_enable &&
+                (di->basp_pdt_para_status != BASP_PDT_PARA_INIT_STATUS)) {
+                asp->nondc_volt_dec = get_basp_grade_ndcvolt_dec(basp_policy[i].nondc_volt_dec);
+            } else {
+                asp->nondc_volt_dec = basp_policy[i].nondc_volt_dec;
+            }
             asp->cur_ratio = basp_policy[i].cur_ratio;
             asp->cur_ratio_policy = basp_policy[i].cur_ratio_policy;
             asp->learned_fcc = (unsigned int)basp_learned_fcc;
@@ -2889,6 +3061,7 @@ int coul_get_battery_aging_safe_policy(AGING_SAFE_POLICY_TYPE *asp)
         }
     }
 
+	di->nondc_volt_dec = asp->nondc_volt_dec;
     if (i == di->basp_total_level) {
         coul_core_err(BASP_TAG"level %d is not exist\n", di->basp_level);
         return -1;
@@ -4647,13 +4820,6 @@ static BASP_LEVEL_TYPE get_basp_level(struct smartstar_coul_device *di)
 	if (!di)
 		return basp_level_ret;
 
-	if (basp_mask_delay && (!di->basp_batt_matched ||
-		di->basp_need_delay)) {
-		coul_core_info(BASP_TAG"skip basp, batt_matched %d, need_delay %d",
-			di->basp_batt_matched, di->basp_need_delay);
-		return basp_level_ret;
-	}
-
 	/* learn fcc is invaild,clear NV */
 	if (!basp_check_sum())
 		clear_record_fcc(di);
@@ -4684,6 +4850,12 @@ static BASP_LEVEL_TYPE get_basp_level(struct smartstar_coul_device *di)
 			basp_learned_fcc = records_avg;
 	}
 	basp_level_ret = find_basp_level();
+
+	if (basp_mask_delay && (!di->basp_batt_matched || di->basp_need_delay)) {
+		coul_core_info(BASP_TAG"skip basp, batt_matched %d, need_delay %d",
+			di->basp_batt_matched, di->basp_need_delay);
+		basp_level_ret = BASP_LEVEL_0;
+	}
 
 	coul_core_info(BASP_TAG"level:%d,\t"
 		"charge_cycles:%d,\t"
@@ -4778,6 +4950,50 @@ void coul_start_soh_check(void)
         charged_cnt = 0;
 }
 
+/*******************************************************
+  Function:        coul_check_drained_battery_flag
+  Description:     check & report battery darined event
+  Input:           struct smartstar_coul_device *di
+  Output:          NULL
+  Return:          NULL
+********************************************************/
+static void coul_check_drained_battery_flag(struct smartstar_coul_device *di)
+{
+	char buff[DSM_BUFF_SIZE_MAX] = {0};
+	int drained_battery_flag = false;
+	int ibat_ua = 0;
+	int vbat_uv = 0;
+	int ret;
+
+	if (!strstr(saved_command_line, "androidboot.mode=normal") ||
+		!strstr(saved_command_line, "androidboot.swtype=normal")) {
+		coul_core_err("%s not a normal version, do nothing\n", __func__);
+		return;
+	}
+	if (di->coul_dev_ops->get_drained_battery_flag &&
+		di->coul_dev_ops->get_drained_battery_flag())
+		drained_battery_flag = true;
+
+	coul_get_battery_voltage_and_current(di, &ibat_ua, &vbat_uv);
+	ret = snprintf_s(buff, sizeof(buff), sizeof(buff) - 1,
+		"last_cycles:%d,cur_cylces:%d,vol=%d,cur=%d\n",
+		last_charge_cycles, di->batt_chargecycles, vbat_uv, ibat_ua);
+	if (ret < 0) {
+		coul_core_err("(%s)snprintf_s fail ret = %d\n", __func__, ret);
+		return;
+	}
+	coul_core_info("changed_flag=%d, drained_flag=%d,vol=%d,cur=%d\n",
+		di->batt_changed_flag, drained_battery_flag, vbat_uv, ibat_ua);
+
+	if (drained_battery_flag)
+		coul_dsm_report_ocv_cali_info(di, DSM_BATTERY_DRAINED_NO , buff);
+	else if (di->batt_changed_flag)
+		coul_dsm_report_ocv_cali_info(di, DSM_BATTERY_CHANGED_NO , buff);
+
+	if (di->coul_dev_ops->clear_drained_battery_flag)
+		di->coul_dev_ops->clear_drained_battery_flag();
+}
+
 static void coul_set_work_interval(struct smartstar_coul_device *di)
 {
     if (NULL == di)
@@ -4803,6 +5019,7 @@ static void coul_imonitor_prepare_basp_basic_info(
 {
 	char *bat_brand = NULL;
 	errno_t ret = EOK;
+	int len;
 
 	if (!di || !info) {
 		coul_core_err("NULL point in [%s]\n", __func__);
@@ -4810,9 +5027,9 @@ static void coul_imonitor_prepare_basp_basic_info(
 	}
 
 	info->act_days = 0;
-	info->bat_cap = di->batt_soc_real;
-	info->bat_tv_set = 0;
-	info->bat_cyc = di->batt_chargecycles;
+	info->bat_cap = di->batt_data->fcc;
+	info->bat_tv_set = di->basp_ndcvolt_cur_dec;
+	info->bat_cyc = di->batt_chargecycles / 100;
 	info->basp_lv = di->basp_level;
 	info->basp_1_days = 0;
 	info->basp_2_days = 0;
@@ -4822,9 +5039,10 @@ static void coul_imonitor_prepare_basp_basic_info(
 	info->fg_fcc1 = di->nv_info.real_fcc_record[0];
 	info->fg_fcc2 = di->nv_info.real_fcc_record[1];
 	info->fg_fcc3 = di->nv_info.real_fcc_record[2];
-	info->cha_ic_tp = 0;
+	info->cha_ic_tp = di->ndc_volt_dec_apk;
 
 	bat_brand = hisi_battery_brand();
+	len = strlen(bat_brand);
 
 	if (bat_brand) {
 		ret = memcpy_s(info->bat_man, BASP_BASIC_INFO_MAX_LEN,
@@ -4832,6 +5050,12 @@ static void coul_imonitor_prepare_basp_basic_info(
 			strnlen(bat_brand, BASP_BASIC_INFO_MAX_LEN - 1) + 1);
 		if (ret != EOK)
 			coul_core_err("bat_man memcpy failed\n");
+
+		ret = memcpy_s(info->bat_mode, BASP_BASIC_INFO_MAX_LEN,
+			bat_brand + len - BATT_MODE_MAX_LEN, BATT_MODE_MAX_LEN);
+		info->bat_mode[BATT_MODE_MAX_LEN] = '\0';
+		if (ret != EOK)
+			coul_core_err("bat_mode memcpy failed\n");
 	}
 
 	ret = memcpy_s(info->bat_par_f, BASP_BASIC_INFO_MAX_LEN,
@@ -4884,7 +5108,7 @@ static void coul_imonitor_prepare_basp_basic_info(
     static int charging_done_ocv_enter_time;
     int charging_done_now_time;
     int ocv_time_inc;
-	struct coul_imonitor_basp_basic_info basp_basic_info;
+	static int sum_time;
 
     if( NULL == di || NULL== work)
     {
@@ -4903,6 +5127,13 @@ static void coul_imonitor_prepare_basp_basic_info(
         coul_core_info("battery not exist, do not calc soc any more\n");
         return;
     }
+	if (sum_time >= 0) {
+		sum_time += di->soc_work_interval;
+		if (sum_time >= DELAY_REPORT_DMD_TIME) {
+			coul_check_drained_battery_flag(di);
+			sum_time = -1;
+		}
+	}
     if(basp_dsm_flag)
     {
         for (i = 0; i < di->basp_total_level; i++) {
@@ -4917,9 +5148,6 @@ static void coul_imonitor_prepare_basp_basic_info(
     }
 
     basp_fcc_learn_evt_handler(di, EVT_PER_CHECK);
-	coul_imonitor_prepare_basp_basic_info(di, &basp_basic_info);
-	coul_imonitor_periodic_report(COUL_IMONITOR_BASP_BASIC_INFO,
-		&basp_basic_info);
 
     offset_cur_modify_val = di->coul_dev_ops->get_offset_current_mod();
     coul_core_info("offset_cur_modify_val:0x%x\n", offset_cur_modify_val);
@@ -5552,7 +5780,25 @@ valid_restore:
 	di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
 }
 
+int get_fcc_after_cv_adjust(struct smartstar_coul_device *di, int fcc_mah)
+{
+	int delta_cv_pc;
+	int real_fcc_mah = fcc_mah;
 
+	if (!di)
+		return real_fcc_mah;
+
+	if (di->nondc_volt_dec > BASP_FATAL_VDEC_TH) {
+		delta_cv_pc = basp_full_pc_by_voltage(di) / TENTH;
+		if (!delta_cv_pc)
+			delta_cv_pc = PERCENT;
+		real_fcc_mah = fcc_mah * PERCENT / delta_cv_pc; /*lint !e414*/
+		coul_core_info("basp fatal dec adjust fcc %d, delta_cv_pc %d\n",
+			fcc_mah, delta_cv_pc);
+	}
+
+	return real_fcc_mah;
+}
 
 /*******************************************************
   Function:        refresh_fcc
@@ -5618,6 +5864,7 @@ void refresh_fcc(struct smartstar_coul_device *di)
 			coul_dsm_report_ocv_cali_info(di, ERROR_REFRESH_FCC_OUTSIDE, buff);
 		}
         di->fcc_real_mah = new_fcc_uah / 1000;
+	di->fcc_real_mah = get_fcc_after_cv_adjust(di, di->fcc_real_mah);
         /*limit max fcc, consider boardd 1.5*fcc gain */
         if (di->fcc_real_mah > design_fcc_mah*106/100)
             di->fcc_real_mah = design_fcc_mah*106/100;
@@ -5661,6 +5908,18 @@ static void coul_process_current_full (struct smartstar_coul_device *di)
    coul_core_info("[%s]--\n",__func__);
 }
 
+void force_ocv_update(struct smartstar_coul_device *di)
+{
+	if (!di)
+		return;
+	/* 1500ms for ibat slow down */
+	msleep(1500);
+	di->last_ocv_level = OCV_LEVEL_7;
+	di->coul_dev_ops->save_ocv_level(di->last_ocv_level);
+	get_ocv_by_vol(di);
+	coul_core_info("force ocv update: ocv %d, ocv_temp %d\n, volt_dec %d\n",
+		 di->batt_ocv, di->batt_ocv_temp, di->basp_ndcvolt_cur_dec);
+}
 
 /*******************************************************
   Function:        coul_charging_done
@@ -5676,6 +5935,7 @@ static void coul_charging_done (struct smartstar_coul_device *di)
     int rm = 0;
     int ret;
     int ocv_update_hour;
+	struct coul_imonitor_basp_basic_info basp_basic_info;
     if( NULL == di )
     {
         coul_core_err("NULL point in [%s]\n", __func__);
@@ -5716,6 +5976,9 @@ static void coul_charging_done (struct smartstar_coul_device *di)
     di->is_nv_need_save = 1;
     di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
 
+	coul_imonitor_prepare_basp_basic_info(di, &basp_basic_info);
+	coul_imonitor_periodic_report(COUL_IMONITOR_BASP_BASIC_INFO, &basp_basic_info);
+
     /*NV save in shutdown charging */
     if (1 == get_pd_charge_flag()){
         if(di->is_nv_need_save){
@@ -5727,6 +5990,9 @@ static void coul_charging_done (struct smartstar_coul_device *di)
         }
     }
     di->charging_state = CHARGING_STATE_CHARGE_DONE;
+
+	if (di->nondc_volt_dec > BASP_FATAL_VDEC_TH)
+		force_ocv_update(di);
 
     coul_core_info("new charging cycles = %d%%\n", di->batt_chargecycles);
     if (ENABLED == di->iscd->enable) {
@@ -5872,17 +6138,40 @@ static void coul_smooth_startup_soc(struct smartstar_coul_device *di)
 #ifdef CONFIG_HUAWEI_CHARGER
 static void __fatal_isc_chg_prot(struct iscd_info *iscd, const int * capacity)
 {
-    int ret;
+    int ret = -1;
 
     if( *capacity >= iscd->fatal_isc_soc_limit[UPLIMIT]) {/*lint !e574*/
-        ret = set_charger_disable_flags(CHARGER_SET_DISABLE_FLAGS, CHARGER_FATAL_ISC_TYPE);
-        if(unlikely(ret)) {
-            coul_core_err("Set isc disable flags for charger failed in %s\n.", __func__);
+        if (iscd->isc_sh_charger) {
+#ifdef CONFIG_HUAWEI_CHARGER_SENSORHUB
+            ret = set_charger_disable_flags_sh(CHARGER_SET_DISABLE_FLAGS,
+                CHARGER_FATAL_ISC_TYPE);
+#endif
+            if (unlikely(ret))
+                coul_core_err("Set isc disable charger failed in"
+                    " __fatal_isc_chg_prot\n");
+        } else {
+            ret = set_charger_disable_flags(CHARGER_SET_DISABLE_FLAGS,
+                CHARGER_FATAL_ISC_TYPE);
+            if(unlikely(ret)) {
+                coul_core_err("Set isc disable flags for charger failed in"
+                    " __fatal_isc_chg_prot\n");
+            }
         }
     } else if( *capacity <= iscd->fatal_isc_soc_limit[RECHARGE]) {/*lint !e574*/
-        ret = set_charger_disable_flags(CHARGER_CLEAR_DISABLE_FLAGS, CHARGER_FATAL_ISC_TYPE);
-        if(unlikely(ret)) {
-            coul_core_err("Clear isc disable flags for charger failed in %s\n.", __func__);
+        if (iscd->isc_sh_charger) {
+#ifdef CONFIG_HUAWEI_CHARGER_SENSORHUB
+            ret = set_charger_disable_flags_sh(CHARGER_CLEAR_DISABLE_FLAGS,
+                CHARGER_FATAL_ISC_TYPE);
+#endif
+            if (unlikely(ret))
+                coul_core_err("Set isc enable charger failed in"
+                    " __fatal_isc_chg_prot\n");
+        } else {
+            ret = set_charger_disable_flags(CHARGER_CLEAR_DISABLE_FLAGS,
+                CHARGER_FATAL_ISC_TYPE);
+            if (unlikely(ret))
+                coul_core_err("Clear isc disable flags for charger failed in"
+                    " __fatal_isc_chg_prot\n");
         }
     }
 }
@@ -6163,6 +6452,11 @@ static void fatal_isc_protection(struct iscd_info *iscd, unsigned long event)
     if(iscd->need_monitor) {
         schedule_delayed_work(&iscd->isc_limit_work,
                              msecs_to_jiffies(ISC_LIMIT_CHECKING_INTERVAL));
+        if (iscd->isc_sh_charger)
+            coul_wake_lock();
+    } else {
+        if (iscd->isc_sh_charger)
+            coul_wake_unlock();
     }
 }
 
@@ -6836,6 +7130,11 @@ void iscd_dump_dsm_info(struct smartstar_coul_device *di, char *buf)
     }
     coul_core_info("ISCD %s ++\n", __func__);
     di->qmax = coul_get_qmax(di);
+
+	snprintf(tmp_buf, (size_t)ISCD_ERR_NO_STR_SIZE, "nondc_volt_dec is %d mv\n",
+		di->nondc_volt_dec);
+	strncat(buf, tmp_buf, strlen(tmp_buf));
+
     snprintf(tmp_buf, (size_t)ISCD_ERR_NO_STR_SIZE, "battery is %s, charge_cycles is %d, "
         "rm is %dmAh %dmAh, fcc is %dmAh %dmAh, Qmax is %dmAh\n",
         di->batt_data->batt_brand, di->batt_chargecycles /PERCENT,
@@ -7086,8 +7385,11 @@ static void iscd_process_short_current(struct smartstar_coul_device *di)
         }
     }
 
-    /* update the isc history information */
-    update_isc_hist(di, smallest_in_oneday);
+	/* update the isc history information */
+	if (!di->basp_pdt_para_enable || (di->basp_pdt_para_enable &&
+		(di->nondc_volt_dec <= BASP_FATAL_VDEC_TH))) {
+		update_isc_hist(di, smallest_in_oneday);
+	}
 
     /* Going on isc detection? */
     if(di->iscd->isc_status) {
@@ -8090,6 +8392,8 @@ static int get_ntc_table(struct device_node* np)
 #ifdef CONFIG_HUAWEI_CHARGER_SENSORHUB
 static void coul_sensorhub_init(struct platform_device *pdev, struct smartstar_coul_device *di)
 {
+	AGING_SAFE_POLICY_TYPE asp;
+	int ret;
 
 	if (NULL == pdev || NULL == di)
 		return;
@@ -8112,14 +8416,43 @@ static void coul_sensorhub_init(struct platform_device *pdev, struct smartstar_c
 	memcpy((void*)g_di_coul_info_sh->ntc_temp_compensation_para, (void*)di->ntc_temp_compensation_para,
 		sizeof(struct ntc_temp_compensation_para_data)*COMPENSATION_PARA_LEVEL);
 	coul_core_info("coul_sensorhub:get ntc_compensation_is=%d,basp_learned_fcc=%d,basp_level=%d\n",
-			g_di_coul_info_sh->ntc_compensation_is, g_di_coul_info_sh->basp_learned_fcc, g_di_coul_info_sh->basp_level);
+		g_di_coul_info_sh->ntc_compensation_is, g_di_coul_info_sh->basp_learned_fcc,
+		g_di_coul_info_sh->basp_level);
+
+	ret = coul_get_battery_aging_safe_policy(&asp);
+	if (ret == 0 && di->basp_pdt_para_enable) {
+		g_di_coul_info_sh->nondc_volt_set_flag = 1;
+		g_di_coul_info_sh->nondc_volt_dec_value = asp.nondc_volt_dec;
+	} else {
+		g_di_coul_info_sh->nondc_volt_set_flag = 0;
+		g_di_coul_info_sh->nondc_volt_dec_value = 0;
+	}
+	coul_core_info("coul sensorhub init, nondc_volt_set_flag = %d, nondc_volt_dec_value = %d\n",
+		g_di_coul_info_sh->nondc_volt_set_flag, g_di_coul_info_sh->nondc_volt_dec_value);
 }
 
 extern struct CONFIG_ON_DDR* pConfigOnDDr;
 int update_coul_sensorhub_info(void)
 {
+	AGING_SAFE_POLICY_TYPE asp;
+	int ret;
+
 	pConfigOnDDr->g_di_coul_info_sh.basp_level = g_smartstar_coul_dev->basp_level;
 	pConfigOnDDr->g_di_coul_info_sh.basp_learned_fcc = basp_learned_fcc;
+
+	ret = coul_get_battery_aging_safe_policy(&asp);
+	if (ret == 0 && g_smartstar_coul_dev->basp_pdt_para_enable) {
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_set_flag = 1;
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_dec_value = asp.nondc_volt_dec;
+	} else {
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_set_flag = 0;
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_dec_value = 0;
+	}
+
+	coul_core_info("coul sensorhub update, nondc_volt_set_flag = %d, nondc_volt_dec_value = %d\n",
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_set_flag,
+		pConfigOnDDr->g_di_coul_info_sh.nondc_volt_dec_value);
+
 	return 0;
 }
 #endif
@@ -8243,6 +8576,13 @@ static void coul_core_get_basp_policy(
 	unsigned int *basp_tmp = NULL;
 
 	/* basp_policy para */
+	ret = of_property_read_s32(np, "basp_pdt_para_enable", &di->basp_pdt_para_enable);
+	if (ret) {
+		coul_core_err(BASP_TAG"get basp_pdt_para_enable fail, use default 0\n");
+		di->basp_pdt_para_enable = DISABLED;
+	}
+	coul_core_info(BASP_TAG"basp_pdt_para_enable = %d\n", di->basp_pdt_para_enable);
+
 	/* basp_policy version   1:1.0  2:2.0 */
 	ret = of_property_read_s32(np, "basp_ver", &di->basp_ver);
 	if (ret) {
@@ -8359,6 +8699,199 @@ static void coul_core_get_basp_policy(
 
 	kfree(basp_tmp);
 }
+
+static void basp_config_pdt_delay(struct smartstar_coul_device *di,
+	unsigned char tag, unsigned char delay_cycle)
+{
+	struct bit_delay_config *cfg = NULL;
+
+	if (di == NULL) {
+		coul_core_err("NULL point in [%s]\n", __func__);
+		return;
+	}
+
+	di->basp_pdt_para_status = BASP_PDT_PARA_DELAYING;
+	cfg = (struct bit_delay_config *)&di->basp_pdt_delay_cfg;
+	if (cfg->config_tag != tag) {
+		di->basp_pdt_delay_cfg = 0;
+		cfg->config_tag = tag;
+		cfg->delay_cylces =
+			(unsigned char)((di->batt_chargecycles / CHARGE_CYCLE_INDEX + delay_cycle) & 0xFF);
+		di->is_nv_need_save = 1;
+		di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
+		coul_core_info("basp pdt cfg delay 0x%x to nv\n", di->basp_pdt_delay_cfg);
+	} else {
+		coul_core_info("tag not change, set basp pdt para delaying\n");
+		if (cfg->delayed) {
+			di->basp_pdt_para_status = BASP_PDT_PARA_DELAY_DONE;
+			coul_core_info("have delayed before, set basp pdt para delay done\n");
+		}
+	}
+
+	return;
+}
+
+static void basp_apply_pdt_para(struct smartstar_coul_device *di)
+{
+	errno_t err;
+	int i;
+
+	if (di == NULL) {
+		coul_core_err("NULL point in [%s]\n", __func__);
+		return;
+	}
+
+	err = memcpy_s(basp_policy, sizeof(basp_policy), basp_policy_pdt, sizeof(basp_policy_pdt));
+	if (err) {
+		coul_core_err("%s memcpy_s basp_policy_pdt to basp_policy failed\n", __func__);
+		return;
+	}
+
+	for (i = 0; i < BASP_LEVEL_CNT; i++) {
+		basp_policy[i].dc_volt_dec =
+			min(basp_policy[i].dc_volt_dec, (unsigned int)BASP_MAX_MVOLT_DEC);
+		basp_policy[i].nondc_volt_dec =
+			min(basp_policy[i].nondc_volt_dec, (unsigned int)BASP_MAX_MVOLT_DEC);
+		basp_policy[i].cur_ratio =
+			max(basp_policy[i].cur_ratio, (unsigned int)BASP_MIN_CUR_RATIO);
+		coul_core_info(BASP_TAG"[%d]\t"
+			", level: %d\t"
+			", chrg_cycles: %-5d\t"
+			", fcc_ratio: %-3d\t"
+			", dc_volt_dec: %-3d\t"
+			", nondc_volt_dec: %-3d\t"
+			", cur_ratio: %-3d\t"
+			", cur_ratio_policy: %d\t"
+			", err_no: %d\t"
+			", logic: %d\n",
+			i,
+			basp_policy[i].level,
+			basp_policy[i].chrg_cycles,
+			basp_policy[i].fcc_ratio,
+			basp_policy[i].dc_volt_dec,
+			basp_policy[i].nondc_volt_dec,
+			basp_policy[i].cur_ratio,
+			basp_policy[i].cur_ratio_policy,
+			basp_policy[i].err_no,
+			basp_policy[i].logic);
+	}
+	di->basp_pdt_para_status = BASP_PDT_PARA_APPLY_DONE;
+	coul_core_info("basp pdt para apply done\n");
+
+	return;
+}
+
+static void basp_read_pdt_para_work(struct work_struct *work)
+{
+	struct smartstar_coul_device *di = container_of(work, struct smartstar_coul_device,
+		basp_read_pdt_para_work.work);
+	struct file *fp = NULL;
+	char *buff = NULL;
+	int read_size;
+	int i;
+	int batt_match_flag = FALSE;
+	int brand_len;
+	int cmp_result;
+	mm_segment_t old_fs;
+	errno_t err;
+	basp_pdt_para *para = NULL;
+
+	if (di == NULL || work == NULL) {
+		coul_core_err("NULL point in [%s]\n", __func__);
+		return;
+	}
+
+	buff = kzalloc(sizeof(basp_pdt_para) + 1, GFP_KERNEL);
+	if (!buff) {
+		coul_core_err("kzalloc size(%lu) in kernel failed in %s\n",
+			      MOUNTS_INFO_FILE_MAX_SIZE, __func__);
+		return;
+	}
+
+	old_fs = get_fs(); /*lint !e501 */
+	set_fs(KERNEL_DS); /*lint !e501*/
+	fp = filp_open(BASP_PDT_PARA_FILE, O_RDONLY, 0660);
+	set_fs(old_fs);
+	if (IS_ERR(fp)) {
+		coul_core_err("Open %s failed in %s\n", BASP_PDT_PARA_FILE, __func__);
+		goto basp_para_buff_free;
+	}
+	read_size = kernel_read(fp, 0, buff, sizeof(basp_pdt_para) + 1);
+	filp_close(fp, NULL);
+	fp = NULL;
+	if (read_size == sizeof(basp_pdt_para)) {
+		coul_core_info("basp pdt para file size was correct\n");
+		para = (basp_pdt_para *)buff;
+		if (para->magic_num == PDT_FILE_MAGIC_NUM) {
+			coul_core_info("enable_flag %d, batt_num %d\n",
+				para->batt_enable_flag, para->batt_num);
+			if ((para->batt_enable_flag == BASP_PDT_ENABLE_SPECIFIC_BATT) &&
+				(para->batt_num <= BATT_BRAND_NUM_MAX)) {
+				for (i = 0; i < para->batt_num; i++) {
+					brand_len = strlen(para->batt_brand[i]);
+					cmp_result = strncmp(di->batt_data->batt_brand,
+						para->batt_brand[i], brand_len);
+					coul_core_info("brand[%d] is %s, cmp_ret is %d\n",
+						i, para->batt_brand[i], cmp_result);
+					if ((cmp_result == 0) && (brand_len > 0) &&
+						(brand_len <= BATT_BRAND_STRING_MAX)) {
+						batt_match_flag = TRUE;
+						coul_core_info("batt[%d] matched, brand is %s\n",
+							i, di->batt_data->batt_brand);
+						break;
+					}
+				}
+			}
+			if ((para->batt_enable_flag == BASP_PDT_ENABLE_ALL_BATT) ||
+				(batt_match_flag)) {
+				di->ndcvdec_apk_disable = para->ndcvdec_apk_disable;
+				di->ndc_volt_dec_step = para->ndc_volt_dec_step;
+				if (para->volt_dec_cycle_step <= VOLT_DEC_MAX_CYCLE_STEP &&
+					para->volt_dec_cycle_step >= VOLT_DEC_MIN_CYCLE_STEP) {
+					di->volt_dec_cycle_step = para->volt_dec_cycle_step;
+				} else {
+					di->volt_dec_cycle_step = VOLT_DEC_DEFAULT_CYCLE_STEP;
+				}
+				coul_core_info("basp pdt delay: switch %d, tag 0x%x, cycle 0x%x\n",
+					para->delay_switch, para->delay_cfg_tag, para->delay_cycles);
+				coul_core_info("basp pdt step info: cycle step %d, dec_step %d\n",
+					di->volt_dec_cycle_step, di->ndc_volt_dec_step);
+				err = memcpy_s(basp_policy_pdt, sizeof(basp_policy_pdt), para->policy,
+					sizeof(struct battery_aging_safe_policy) * BASP_LEVEL_CNT);
+				if (err) {
+					coul_core_err("%s memcpy_s to policy_pdt fail\n", __func__);
+					goto basp_para_buff_free;
+				}
+				di->basp_pdt_para_status = BASP_PDT_PARA_READ_DONE;
+				coul_core_info("basp pdt para read done\n");
+				if (para->delay_switch && para->delay_cycles) {
+					basp_config_pdt_delay(di, para->delay_cfg_tag,
+						para->delay_cycles);
+				} else {
+					di->basp_pdt_para_status = BASP_PDT_PARA_DELAY_DONE;
+					coul_core_info("basp pdt para delay done\n");
+				}
+			}
+		} else {
+			coul_core_info("basp pdt file damaged, magic is 0x%x\n", para->magic_num);
+		}
+	} else {
+		coul_core_info("basp pdt para file size was uncorrect, read_size %d\n", read_size);
+	}
+
+	if (di->basp_pdt_para_status == BASP_PDT_PARA_INIT_STATUS && di->basp_ndcvolt_cur_dec) {
+		di->basp_ndcvolt_cur_dec = 0;
+		di->ndcvolt_dec_cur_cycle = 0;
+		di->is_nv_need_save = 1;
+		di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
+	}
+
+basp_para_buff_free:
+	kfree(buff);
+	buff = NULL;
+	return;
+}
+
 static void coul_core_get_iscd_dsm_config(struct device_node* np, struct iscd_info *iscd)
 {
     int ret = 0;
@@ -8494,6 +9027,12 @@ static void coul_core_get_iscd_info(struct device_node* np, struct iscd_info *is
         iscd->iscd_file_magic_num = FATAL_ISC_MAGIC_NUM;
     }
     coul_core_info("ISCD iscd_file_magic_num = %d\n", iscd->iscd_file_magic_num);
+    ret = of_property_read_u32(np, "isc_sh_charger", &iscd->isc_sh_charger);
+    if (ret) {
+        coul_core_err("get isc_sh_charger fail, use default one\n");
+        iscd->isc_sh_charger = ISC_SH_CHARGER_DEFAULT;
+    }
+    coul_core_info("ISCD isc_sh_charger = %d\n", iscd->isc_sh_charger);
     coul_core_get_iscd_dsm_config(np, iscd);
 
     iscd->isc_valid_cycles = ISCD_CHARGE_CYCLE_MIN;
@@ -9628,15 +10167,65 @@ static void iscd_remove(struct smartstar_coul_device *di)
     }
 }
 
+static bool is_no_clear_batt(struct smartstar_coul_device *di)
+{
+	int i;
+	int ret;
+	int off;
+	int array_len;
+	int batt_brand_len;
+	int cfg_brand_len;
+	const char *cfg_brand = NULL;
+
+	if (!di->dev || !di->dev->of_node || !di->batt_data->batt_brand)
+		return false;
+
+	array_len = of_property_count_strings(di->dev->of_node, "no_clear_batts");
+	if (array_len <= 0) {
+		coul_core_err("read no_clear_batts len failed\n");
+		return false;
+	}
+
+	batt_brand_len = strlen(di->batt_data->batt_brand);
+	for (i = 0; i < array_len; i++) {
+		cfg_brand = NULL;
+		ret = of_property_read_string_index(di->dev->of_node, "no_clear_batts",
+			i, &cfg_brand);
+		if (ret != 0 || !cfg_brand) {
+			coul_core_err("no_clear_batts dts read failed\n");
+			return false;
+		}
+		cfg_brand_len = strlen(cfg_brand);
+		if (cfg_brand_len > 0 && batt_brand_len >= cfg_brand_len) {
+			off = batt_brand_len - cfg_brand_len;
+			if (strncasecmp(di->batt_data->batt_brand + off, cfg_brand, cfg_brand_len) == 0) {
+				coul_core_info("brand %s matched no clear batt %s\n",
+					di->batt_data->batt_brand, cfg_brand);
+				return true;
+			}
+		}
+	}
+	coul_core_info("not in no clear batts, clear moved data\n");
+	return false;
+}
+
 static void clear_moved_battery_data(struct smartstar_coul_device *di)
 {
     if(di->coul_dev_ops->is_battery_moved()){
+		if (is_no_clear_batt(di)) {
+			coul_core_info("mask battery removed\n");
+			return;
+		}
         di->batt_chargecycles = 0;
         di->batt_changed_flag = 1;
         di->batt_reset_flag = 1;
         di->batt_limit_fcc = 0;
         di->batt_report_full_fcc_real = 0;
-	di->basp_delay_config = 0;
+        di->basp_delay_config = 0;
+        di->basp_pdt_delay_cfg = 0;
+        di->basp_ndcvolt_cur_dec = 0;
+        di->ndcvolt_dec_cur_cycle = 0;
+	di->ndc_volt_dec_apk = 0;
         di->adjusted_fcc_temp_lut = NULL; /* enable it when test ok */
         di->is_nv_need_save = 1;
         di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
@@ -9672,37 +10261,6 @@ static int coul_dev_ops_check_fail(struct smartstar_coul_device *di)
         retval = -EINVAL;
     }
 	return 0;
-}
-/*******************************************************
-  Function:        coul_check_drained_battery_flag
-  Description:     check & report battery darined event
-  Input:           struct smartstar_coul_device *di
-  Output:          NULL
-  Return:          NULL
-********************************************************/
-static void coul_check_drained_battery_flag(struct smartstar_coul_device *di)
-{
-    char buff[DSM_BUFF_SIZE_MAX] = {0};
-    int drained_battery_flag = false;
-    if(NULL != di->coul_dev_ops->get_drained_battery_flag){
-        if(di->coul_dev_ops->get_drained_battery_flag()){
-            drained_battery_flag = true;
-        }
-    }
-    if(strstr(saved_command_line, "androidboot.mode=normal") && strstr(saved_command_line, "androidboot.swtype=normal")){
-   /*if the register of battery drained equals true when battery changed detected,report batter
-y drained event*/
-        (void)snprintf_s(buff,sizeof(buff),sizeof(buff)-1,"last_charge_cycles:%d,charge_cylces:%d!\n",
-            last_charge_cycles,di->batt_chargecycles);
-        if(di->batt_changed_flag && !drained_battery_flag){
-            coul_dsm_report_ocv_cali_info(di, DSM_BATTERY_CHANGED_NO , buff);
-        }else if(drained_battery_flag){
-            coul_dsm_report_ocv_cali_info(di, DSM_BATTERY_DRAINED_NO , buff);
-        }
-        if(NULL != di->coul_dev_ops->clear_drained_battery_flag){
-            di->coul_dev_ops->clear_drained_battery_flag();
-        }
-    }
 }
 
 /*******************************************************
@@ -9840,7 +10398,6 @@ static int  hisi_coul_probe(struct platform_device *pdev)
 
     /* battery moved, clear battery data, then update basp level */
     clear_moved_battery_data(di);
-    coul_check_drained_battery_flag(di);
     battery_para_check(di);
     g_basp_full_pc = basp_full_pc_by_voltage(di);
     di->qmax = coul_get_qmax(di);
@@ -9916,6 +10473,8 @@ coul_no_battery:
     coul_ops->get_coul_calibration_status  = coul_get_calibration_status;
     coul_ops->battery_removed_before_boot = get_batt_reset_flag;
     coul_ops->get_qmax                    = coul_get_battery_qmax;
+	coul_ops->get_ndcvolt_dec_nv      = coul_get_ndcvolt_dec_nv;
+	coul_ops->set_ndcvolt_dec_apk     = coul_set_ndcvolt_dec_apk;
 #ifdef CONFIG_HISI_ASW
 	coul_ops->asw_refresh_fcc = coul_asw_refresh_fcc;
 #endif /* CONFIG_HISI_ASW */
@@ -9939,6 +10498,22 @@ coul_no_battery:
 	g_pdev = pdev;
     /* fatal isc init */
     iscd_probe(di);
+
+    if (di->basp_pdt_para_enable) {
+        di->basp_pdt_para_status = BASP_PDT_PARA_INIT_STATUS;
+        di->volt_dec_cycle_step = VOLT_DEC_DEFAULT_CYCLE_STEP;
+        di->ndc_volt_dec_step = BASP_NDCVOLT_DEC_STEP;
+	di->ndcvdec_apk_disable = 0;
+        INIT_DELAYED_WORK(&di->basp_read_pdt_para_work, basp_read_pdt_para_work);
+        schedule_delayed_work(&di->basp_read_pdt_para_work,
+		msecs_to_jiffies(WAIT_FOR_PRODUCT_MOUNT));
+    } else if (di->basp_ndcvolt_cur_dec) {
+        di->basp_ndcvolt_cur_dec = 0;
+        di->ndcvolt_dec_cur_cycle = 0;
+	di->ndc_volt_dec_apk = 0;
+        di->is_nv_need_save = 1;
+        di->coul_dev_ops->set_nv_save_flag(NV_SAVE_FAIL);
+    }
 #ifdef CONFIG_HISI_COUL_POLAR
     polar_ipc_init(di);
     di->coul_dev_ops->set_eco_sample_flag(0);

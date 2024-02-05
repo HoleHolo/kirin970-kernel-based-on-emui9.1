@@ -46,6 +46,7 @@
 #endif
 
 #define BASP_BASIC_INFO_MAX_LEN 32
+#define BATT_MODE_MAX_LEN 3
 
 /* interval of imonitor report: one week  unit: s */
 #define COUL_IMONITOR_REPORT_INTERVAL_WEEKLY (7 * 24 * 60 * 60)

@@ -1535,6 +1535,35 @@ static void hisifb_sysfs_remove(struct platform_device *pdev)
 	hisifb_sysfs_init(hisifd);
 }
 
+static ssize_t hisi_fb_read(struct fb_info *info, char __user *buf,
+	size_t count, loff_t *ppos)
+{
+	return 0;
+}
+
+static ssize_t hisi_fb_write(struct fb_info *info, const char __user *buf,
+	size_t count, loff_t *ppos)
+{
+	int err;
+
+	if (!info)
+		return -ENODEV;
+
+	if (!lock_fb_info(info))
+		return -ENODEV;
+
+	if (!info->screen_base) {
+		unlock_fb_info(info);
+		return -ENODEV;
+	}
+
+	err = fb_sys_write(info, buf, count, ppos);
+
+	unlock_fb_info(info);
+
+	return err;
+}
+
 /*******************************************************************************
 **
 */
@@ -1542,8 +1571,8 @@ static struct fb_ops hisi_fb_ops = {
 	.owner = THIS_MODULE,
 	.fb_open = hisi_fb_open,
 	.fb_release = hisi_fb_release,
-	.fb_read = NULL,
-	.fb_write = NULL,
+	.fb_read = hisi_fb_read,
+	.fb_write = hisi_fb_write,
 	.fb_cursor = NULL,
 	.fb_check_var = hisi_fb_check_var,
 	.fb_set_par = hisi_fb_set_par,

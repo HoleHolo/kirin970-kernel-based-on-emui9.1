@@ -117,7 +117,7 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				data.allocation.flags);
 			return PTR_ERR(handle);
 		}
-
+		pass_to_user(handle);
 		data.allocation.handle = handle->id;
 
 		cleanup_handle = handle;
@@ -133,7 +133,7 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			mutex_unlock(&client->lock);
 			return PTR_ERR(handle);
 		}
-		ion_free_nolock(client, handle);
+		user_ion_free_nolock(client, handle);
 		ion_handle_put_nolock(handle);
 		mutex_unlock(&client->lock);
 		break;
@@ -170,8 +170,14 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			pr_err("handle is error %d\n", __LINE__);
 			ret = PTR_ERR(handle);
 		}
-		else
+		handle = pass_to_user(handle);
+		if (IS_ERR(handle)) {
+			pr_err("ion_import pass_to_user fail: fd=%d\n",
+			       data.fd.fd);
+			ret = PTR_ERR(handle);
+		} else {
 			data.handle.handle = handle->id;
+		}
         #ifdef CONFIG_HW_FDLEAK
                 fdleak_report(FDLEAK_WP_DMABUF, 2);
         #endif
@@ -245,8 +251,10 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			pr_err("%s: copy to user failed! cmd: %d\n",
 					__func__, cmd);
 			if (cleanup_handle) {
-				ion_free(client, cleanup_handle);
-				ion_handle_put(cleanup_handle);
+				mutex_lock(&client->lock);
+				user_ion_free_nolock(client, cleanup_handle);
+				ion_handle_put_nolock(cleanup_handle);
+				mutex_unlock(&client->lock);
 			}
 			return -EFAULT;
 		}

@@ -514,33 +514,37 @@ int hisi_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	int i = 0;
 	int ret = 0;
 
-	if (NULL == info) {
-		HISI_FB_ERR("NULL Pointer.\n");
+	if (!info || !vma) {
 		return -EINVAL;
 	}
 
 	hisifd = (struct hisi_fb_data_type *)info->par;
-	if (NULL == hisifd || !(hisifd->pdev)) {
-		HISI_FB_ERR("NULL Pointer.\n");
+	if (!hisifd || !(hisifd->pdev)) {
 		return -EINVAL;
 	}
 
-	if (hisifd->index == PRIMARY_PANEL_IDX) {
-		if (hisifd->fb_mem_free_flag) {
-			if (!hisifb_alloc_fb_buffer(hisifd)) {
-				HISI_FB_ERR("fb%d, hisifb_alloc_buffer failed!\n", hisifd->index);
-				return -ENOMEM;
-			}
-		}
-	} else {
-		HISI_FB_ERR("fb%d, no fb buffer!\n", hisifd->index);
+	if (hisifd->index != PRIMARY_PANEL_IDX) {
+		HISI_FB_INFO("fb%u, no fb buffer!\n", hisifd->index);
 		return -EFAULT;
 	}
 
+	if (!lock_fb_info(info)) {
+		return -ENODEV;
+	}
+
+	if (hisifd->fb_mem_free_flag) {
+		if (!hisifb_alloc_fb_buffer(hisifd)) {
+			HISI_FB_ERR("fb%d, hisifb_alloc_buffer failed!\n", hisifd->index);
+			ret = -ENOMEM;
+			goto return_unlock;
+		}
+	}
+
 	table = hisifd->fb_sg_table;
-	if ((table == NULL) || (vma == NULL)) {
+	if (!table) {
 		HISI_FB_ERR("fb%d, table or vma is NULL!\n", hisifd->index);
-		return -EFAULT;
+		ret = -EFAULT;
+		goto return_unlock;
 	}
 
 	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
@@ -552,7 +556,8 @@ int hisi_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	if (size > info->fix.smem_len) {
 		HISI_FB_ERR("fb%d, size=%lu is out of range(%u)!\n",
 			hisifd->index, size, info->fix.smem_len);
-		return -EFAULT;
+		ret = -EFAULT;
+		goto return_unlock;
 	}
 
 	for_each_sg(table->sgl, sg, table->nents, i) {
@@ -563,25 +568,33 @@ int hisi_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 		if (offset >= sg->length) {
 			offset -= sg->length;
 			continue;
-		} else if (offset) {
+		}
+
+		if (offset) {
 			page += offset / PAGE_SIZE;
 			len = sg->length - offset;
 			offset = 0;
 		}
+
 		len = min(len, remainder);
-		ret = remap_pfn_range(vma, addr, page_to_pfn(page), len,
-			vma->vm_page_prot);
+		ret = remap_pfn_range(vma, addr, page_to_pfn(page), len, vma->vm_page_prot);
+
 		if (ret != 0) {
 			HISI_FB_ERR("fb%d, failed to remap_pfn_range! ret=%d\n",
 				hisifd->index, ret);
+			goto return_unlock;
 		}
 
 		addr += len;
 		if (addr >= vma->vm_end) {
-			return 0;
-        }
+			ret = 0;
+			break;
+		}
 	}
-	return 0;
+
+return_unlock:
+	unlock_fb_info(info);
+	return ret;
 }
 
 void hisifb_free_logo_buffer(struct hisi_fb_data_type *hisifd)
