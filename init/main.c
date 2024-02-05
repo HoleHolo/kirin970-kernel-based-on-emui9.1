@@ -89,6 +89,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
+#ifdef CONFIG_HW_RECLAIM_ACCT
+#include <chipset_common/reclaim_acct/reclaim_acct.h>
+#endif
 #ifdef CONFIG_HUAWEI_BOOT_TIME
 #include <huawei_platform/boottime/hw_boottime.h>
 #endif
@@ -685,6 +688,9 @@ asmlinkage __visible void __init start_kernel(void)
 	cgroup_init();
 	taskstats_init_early();
 	delayacct_init();
+#ifdef CONFIG_HW_RECLAIM_ACCT
+	reclaimacct_init();
+#endif
 
 	check_bugs();
 

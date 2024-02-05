@@ -4419,9 +4419,10 @@ int __handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	ret = handle_pte_fault(&vmf);
 	mem_cgroup_oom_disable();
 
-	if (ret != VM_FAULT_RETRY)
+	if (ret != VM_FAULT_RETRY) {
+		check_sync_rss_stat(current);
 		count_vm_event(SPECULATIVE_PGFAULT);
-
+	}
 	/*
 	 * The task may have entered a memcg OOM situation but
 	 * if the allocation error was handled gracefully (no
