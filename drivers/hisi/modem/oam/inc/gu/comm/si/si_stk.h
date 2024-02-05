@@ -267,6 +267,8 @@ typedef VOS_UINT32 (*DS2TLV)(VOS_UINT8 Tag,VOS_UINT8 *pDes,VOS_UINT8 *pSrc,VOS_U
                                                              ||(SI_STK_ENVELOPE_SMSCRTL == ucDataType)  \
                                                              ||(SI_STK_ENVELOPE_USSDDOWN == ucDataType)  )
 
+#define STK_SSD_OR_USSD_DCS_LEN 420
+
 /*******************************************************************************
   3 Ã¶¾Ù¶¨Òå
 *******************************************************************************/
@@ -1075,6 +1077,8 @@ extern VOS_VOID STK_GetProfileInfo(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UI
 extern VOS_VOID STK_SetCallCleanGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
 extern VOS_VOID STK_UpdateSearchMode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 ucSearchMode);
+
+extern VOS_BOOL SI_STK_CheckDualSimCtrlNvDataValid(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_IMSICHG_MATCH_STRU *pstIMSIMatch);
 
 extern VOS_VOID STK_InitGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 

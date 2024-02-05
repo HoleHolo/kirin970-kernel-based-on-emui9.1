@@ -892,6 +892,7 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
 
 fail:
 	blk_free_flush_queue(q->fq);
+	q->fq = NULL;
 	wbt_exit(q->rq_wb);
 	q->rq_wb = NULL;
 	return NULL;

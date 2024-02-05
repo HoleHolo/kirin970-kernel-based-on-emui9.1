@@ -58,7 +58,7 @@ int get_modem_rab_id(struct bst_modem_rab_id *info)
 
 	if (!info) {
 		return -EINVAL;
-	}
+	}
 
 	if (IS_ERR_OR_NULL(dev_filp)) {
 		return -EBUSY;
@@ -167,6 +167,13 @@ static void bastet_aspen_pkt_drop_proc(uint8_t *msg, uint32_t len)
 	{
 		case BST_ASPEN_INFO_PKT_DROP:
 		{
+			if (aspen_msg->ulPktNum >
+				(BST_MAX_READ_PAYLOAD / sizeof(struct aspen_cdn_info))) {
+				BASTET_LOGE("aspen ulPktNum oversize %d",
+					aspen_msg->ulPktNum);
+				break;
+			}
+
 			if (len != (sizeof(bst_aspen_pkt_drop) - (BST_ASPEN_PKT_DROP_SIZE - aspen_msg->ulPktNum) * sizeof(struct aspen_cdn_info))) {
 				BASTET_LOGE("aspen msg size wrong %u", len);
 				break;
@@ -209,7 +216,8 @@ static int handle_event(uint8_t *msg, uint32_t len)
 			bst_acom_msg *acom_msg = (bst_acom_msg *)msg;
 			long hdrlen = (uint8_t *)(acom_msg->aucValue) - (uint8_t *)acom_msg;
 
-			if (len != hdrlen + acom_msg->ulLen) {
+			if (acom_msg->ulLen > BST_MAX_READ_PAYLOAD ||
+				len != hdrlen + acom_msg->ulLen) {
 				BASTET_LOGE("aspen msg len error %u %u", len, acom_msg->ulLen);
 				break;
 			}
@@ -246,7 +254,8 @@ static int handle_event(uint8_t *msg, uint32_t len)
 			bst_acom_msg *acom_msg = (bst_acom_msg *)msg;
 			long hdrlen = (uint8_t *)(acom_msg->aucValue) - (uint8_t *)acom_msg;
 
-			if (len != hdrlen + acom_msg->ulLen) {
+			if (acom_msg->ulLen > BST_MAX_READ_PAYLOAD ||
+				len != hdrlen + acom_msg->ulLen) {
 				BASTET_LOGE("reset info msg len error %u %u", len, acom_msg->ulLen);
 				break;
 			}

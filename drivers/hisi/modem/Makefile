@@ -49,7 +49,7 @@ ifeq ($(strip $(MODEM_LOGCAT_INUSER)),true)
 subdir-ccflags-y += -DMODEM_LOGCAT_INUSER
 endif
 
-ifeq ($(strip $(MODEM_LOG_FILTER_NVCONTROL)),true)
+ifeq ($(strip $(modem_log_filter_nv_control)),true)
 subdir-ccflags-y += -DMODEM_LOG_FILTER_INUSER
 endif
 

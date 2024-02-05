@@ -482,6 +482,14 @@ static bool region_should_be_compressed(struct kbase_va_region *reg)
 		/*This region will be deleted soon*/
 		compress = false;
 	}
+	/* Cannot compress the alias region. */
+	if (reg->gpu_alloc->type == KBASE_MEM_TYPE_ALIAS) {
+		compress = false;
+	}
+	/* Cannot compress the region be aliased. */
+	if (atomic_read(&reg->gpu_alloc->gpu_mappings) > 1) {
+		compress = false;
+	}
 	return compress;
 }
 
@@ -752,22 +760,6 @@ static int kbase_gmc_walk_kctx(struct kbase_context *kctx, struct kbase_gmc_arg 
 		}
 	}
 
-	for_each_rb_node(&(kctx->reg_rbtree_custom), node) {
-		reg = rb_entry(node, struct kbase_va_region, rblink);
-		if (!is_region_free(reg)) {
-			reg->op = arg.op;
-
-			atomic_inc(&n_gmc_workers);
-			queue_work(system_unbound_wq, &reg->gmc_work);
-
-			if(arg.op == GMC_COMPRESS){
-				nr_pages_to_compressed -= reg->cpu_alloc->nents;
-				if(nr_pages_to_compressed <= 0)
-					break;	//only compress arg->compress_size
-			}
-		}
-	}
-
 	while (atomic_read(&n_gmc_workers) > 0) {
 		int err = wait_event_interruptible_timeout(gmc_wait, !atomic_read(&n_gmc_workers),timeout_jiff);
 		if (err <= 0) {
@@ -818,7 +810,7 @@ int kbase_gmc_walk_device(struct kbase_device *kbdev, pid_t pid, struct kbase_gm
 	mutex_lock(&kbdev->kctx_list_lock);
 	list_for_each_entry_safe(element, tmp, &kbdev->kctx_list, link) {
 		struct kbase_context *kctx = element->kctx;
-		if (kctx->tgid == pid || pid == GMC_HANDLE_ALL_KCTXS) {
+		if ((kctx->filp != NULL) && (kctx->tgid == pid || pid == GMC_HANDLE_ALL_KCTXS)) {
 			ret = kbase_gmc_walk_kctx(kctx, arg);
 			if (ret)
 				goto out;

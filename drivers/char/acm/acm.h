@@ -1,14 +1,11 @@
-#ifndef __ACM_H__
-#define __ACM_H__
-
-#define ACM_LOG_TAG "ACM"
-#define pr_fmt(fmt) ACM_LOG_TAG ": %s %d " fmt, __func__, __LINE__
-#define PRINT_ERR(fmt, ...) printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
-#ifdef CONFIG_ACM_DEBUG
-#define PRINT_DEBUG(fmt, ...) printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
-#else
-#define PRINT_DEBUG(fmt, ...)
-#endif
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2017-2020. All rights reserved.
+ * Description: Header file of Access Control Module.
+ *
+ *     This file is released under the GPL v2.
+ */
+#ifndef __DRIVERS_CHAR_ACM_H__
+#define __DRIVERS_CHAR_ACM_H__
 
 #include <linux/module.h>
 #include <linux/cdev.h>
@@ -36,31 +33,30 @@
 #include <linux/acm_f2fs.h>
 
 #define ACM_DEV_NAME "acm"
-#define ACM_DEV_BASE_MINOR (0)
-#define ACM_DEV_COUNT (1)
+#define ACM_DEV_BASE_MINOR 0
+#define ACM_DEV_COUNT 1
 
 #define ACM_MAGIC       'a'
-#define ACM_ADD         _IOW(ACM_MAGIC, 0, acm_fwk_pkg_t)
-#define ACM_DEL         _IOW(ACM_MAGIC, 1, acm_fwk_pkg_t)
-#define ACM_SEARCH      _IOR(ACM_MAGIC, 2, acm_mp_node_t)
-#define ACM_ADD_DIR     _IOR(ACM_MAGIC, 3, acm_fwk_dir_t)
-#define ACM_DEL_DIR     _IOR(ACM_MAGIC, 4, acm_fwk_dir_t)
+#define ACM_ADD         _IOW(ACM_MAGIC, 0, struct acm_fwk_pkg)
+#define ACM_DEL         _IOW(ACM_MAGIC, 1, struct acm_fwk_pkg)
+#define ACM_SEARCH      _IOR(ACM_MAGIC, 2, struct acm_mp_node)
+#define ACM_ADD_DIR     _IOR(ACM_MAGIC, 3, struct acm_fwk_dir)
+#define ACM_DEL_DIR     _IOR(ACM_MAGIC, 4, struct acm_fwk_dir)
 #ifdef CONFIG_ACM_DSM
-#define ACM_ADD_DSM     _IOR(ACM_MAGIC, 5, acm_mp_node_t)
-#define ACM_CMD_MAXNR   (5)
+#define ACM_ADD_DSM     _IOR(ACM_MAGIC, 5, struct acm_mp_node)
+#define ACM_CMD_MAXNR   5
 #else
-#define ACM_CMD_MAXNR   (4)
+#define ACM_CMD_MAXNR   4
 #endif
 
-#define ACM_HASH_TABLE_SIZE (512)
-#define HASH_TABLE_MAX_SIZE (4096)
-#define ACM_PKGNAME_MAX_LEN (100)
-#define ACM_PATH_MAX (1024)
+#define ACM_HASHTBL_SZ 512
+#define HASHTBL_MAX_SZ 4096
+#define ACM_PATH_MAX 1024
 #define DEPTH_INIT (-1)
-#define ACM_DIR_MAX_LEN (64)
-#define ACM_DIR_LIST_MAX_LEN (1024)
-#define ACM_DNAME_MAX_LEN (256)
-#define ACM_DMD_LIST_MAX_NODES (2048)
+#define ACM_DIR_MAX 64
+#define ACM_DIR_LIST_MAX 1024
+#define ACM_DNAME_MAX 256
+#define ACM_DMD_LIST_MAX_NODES 2048
 #define MAX_CACHED_DELETE_LOG 3
 #define DELETE_LOG_UPLOAD_INTERVAL_MS 100
 
@@ -68,107 +64,95 @@
 #define PATH_PREFIX_STORAGE_EMULATED "/storage/emulated"
 #define PATH_UNKNOWN "unknown_path"
 
-#define UEVENT_KEY_STR_MAX_LEN (16)
-#define ENV_DSM_PKGNAME_MAX_LEN (UEVENT_KEY_STR_MAX_LEN + ACM_PKGNAME_MAX_LEN)
-#define ENV_DSM_PATH_MAX_LEN 1024
-#define ENV_DSM_NR_STR_MAX_LEN 32
-#define ENV_DSM_DEPTH_STR_MAX_LEN 32
-#define ENV_DSM_FILE_TYPE_STR_MAX_LEN 32
+#define UEVENT_KEY_STR_MAX 16
+#define ENV_DSM_PKGNAME_MAX (UEVENT_KEY_STR_MAX + ACM_PKGNAME_MAX)
+#define ENV_DSM_PATH_MAX 1024
+#define ENV_DSM_NR_STR_MAX 32
+#define ENV_DSM_DEPTH_STR_MAX 32
+#define ENV_DSM_FILE_TYPE_STR_MAX 32
 
-#define ERR_PATH_MAX_DENTRIES (6)
-#define ERR_PATH_LAST_DENTRY (0)
+#define ERR_PATH_MAX_DENTRIES 6
+#define ERR_PATH_LAST_DENTRY 0
 
-#define UID_BOUNDARY 10000
+#define ACM_HASH_LEFT_SHIFT 4
+#define ACM_HASH_MASK 0xF0000000L
+#define ACM_HASH_RESULT_MASK 0x7FFFFFFF
+#define ACM_HASH_RIGHT_SHIFT 24
+
 #define DEL_ALLOWED 0
-#define DEL_FORBIDDEN -1
 #define ACM_SUCCESS 0
 
-#ifdef CONFIG_ACM_DEBUG
-#include <linux/debugfs.h>
-#define acm_static
-#define EXPORT_FOR_ACM_DEBUG(name) EXPORT_SYMBOL(name)
-#else
-#define acm_static static
-#define EXPORT_FOR_ACM_DEBUG(name)
-#endif
-
 /* white list node */
-typedef struct acm_hash_node {
+struct acm_hnode {
 	struct hlist_node hnode;
-	char pkgname[ACM_PKGNAME_MAX_LEN];
-} acm_hash_node_t;
+	char pkgname[ACM_PKGNAME_MAX];
+};
 
-typedef struct acm_hash_table {
+/* a hash table for white list */
+struct acm_htbl {
 	struct hlist_head *head;
 	spinlock_t spinlock;
 	int nr_nodes;
-} acm_hash_table_t;
+};
 
-typedef struct acm_dir_node {
+/* data node for directory */
+struct acm_dnode {
 	struct list_head lnode;
-	char dir[ACM_DIR_MAX_LEN];
-} acm_dir_node_t;
+	char dir[ACM_DIR_MAX];
+};
 
 /* data node for framework and DMD */
-typedef struct acm_list_node {
+struct acm_lnode {
 	struct list_head lnode;
-	char pkgname[ACM_PKGNAME_MAX_LEN];
+	char pkgname[ACM_PKGNAME_MAX];
 	char path[ACM_PATH_MAX];
 	int file_type;
 	int depth;
-
+	int op;
 	/*
 	 * Number of deleted files in a period of time,
 	 * only used in cache
 	 */
 	int nr;
-} acm_list_node_t;
+};
 
-typedef struct acm_list {
+struct acm_list {
 	struct list_head head;
 	unsigned long nr_nodes;
 	spinlock_t spinlock;
-} acm_list_t;
+};
 
-typedef struct acm_cache {
-	acm_list_node_t cache[MAX_CACHED_DELETE_LOG];
+struct acm_cache {
+	struct acm_lnode cache[MAX_CACHED_DELETE_LOG];
 	int count;
-	//spinlock_t spinlock;
-} acm_cache_t;
+};
 
-typedef struct acm_env {
-	char pkgname[ENV_DSM_PKGNAME_MAX_LEN];
-	char path[ENV_DSM_PATH_MAX_LEN];
-	char depth[ENV_DSM_DEPTH_STR_MAX_LEN];
-	char file_type[ENV_DSM_FILE_TYPE_STR_MAX_LEN];
-	char nr[ENV_DSM_NR_STR_MAX_LEN];
+struct acm_env {
+	char pkgname[ENV_DSM_PKGNAME_MAX];
+	char path[ENV_DSM_PATH_MAX];
+	char depth[ENV_DSM_DEPTH_STR_MAX];
+	char file_type[ENV_DSM_FILE_TYPE_STR_MAX];
+	char nr[ENV_DSM_NR_STR_MAX];
+	char op[ENV_DSM_NR_STR_MAX];
 	char *envp[UEVENT_NUM_ENVP];
-} acm_env_t;
+};
 
 /* package name received from framework */
-typedef struct acm_fwk_pkg {
-	char pkgname[ACM_PKGNAME_MAX_LEN];
-} acm_fwk_pkg_t;
+struct acm_fwk_pkg {
+	char pkgname[ACM_PKGNAME_MAX];
+};
 
 /* directory received from framework */
-typedef struct acm_fwk_dir {
-	char dir[ACM_DIR_MAX_LEN];
-} acm_fwk_dir_t;
+struct acm_fwk_dir {
+	char dir[ACM_DIR_MAX];
+};
 
 /* data received from mediaprovider */
-typedef struct acm_mp_node {
-	char pkgname[ACM_PKGNAME_MAX_LEN];
+struct acm_mp_node {
+	char pkgname[ACM_PKGNAME_MAX];
 	char path[ACM_PATH_MAX];
 	int file_type;
 	int flag;
-} acm_mp_node_t;
+};
 
-acm_static acm_hash_node_t *acm_hash_search(struct hlist_head *hash, char *keystring);
-acm_static unsigned int ELFHash(char *str);
-
-acm_static void acm_fwk_add(struct list_head *head, acm_list_node_t *list_node);
-acm_static void acm_dmd_add(struct list_head *head, acm_list_node_t *list_node);
-
-acm_static void upload_data_to_fwk(void);
-
-#endif /* __ACM_H__ */
+#endif /* __DRIVERS_CHAR_ACM_H__ */

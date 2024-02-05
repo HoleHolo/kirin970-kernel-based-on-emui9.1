@@ -1,15 +1,51 @@
-/******************************************************************************
+/*
+ * Copyright (C) Huawei Technologies Co., Ltd. 2012-2015. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
-  Copyright(C)2008,Hisilicon Co. LTD.
-
- ******************************************************************************
-  File Name       : AppNasComm.h
-  Description     : AppNasComm.h header file
-  History         :
-      1.sunbing       2008-12-17   Draft Enact
-      2.lihong        2009-09-22   Modify
-
-******************************************************************************/
 
 #ifndef __APPNASCOMM_H__
 #define __APPNASCOMM_H__
@@ -201,7 +237,6 @@ extern "C" {
 #define APP_ERR_SM_APN_DISABLE                              (APP_ERR_SM_SECTION_BEGIN + 51)
 #define APP_ERR_SM_IMS_DEREG_NOT_ATTACH                     (APP_ERR_SM_SECTION_BEGIN + 52)
 #define APP_ERR_SM_BEARER_ALLOC_NOT_ALLOWED     (APP_ERR_SM_SECTION_BEGIN + 53)
-
 #define APP_ERR_SM_BEARER_MOD_NOT_ALLOWED     (APP_ERR_SM_SECTION_BEGIN + 54)
 
 /* SM与网侧错误码 */
@@ -296,8 +331,6 @@ extern "C" {
 #define NAS_LMM_DAM_NV_CSERVICE_MAX_VALUE     60
 #define NAS_LMM_DAM_NV_CSERVICE_MIN_VALUE     1
 #define NAS_LMM_DAM_CSERVICE_DEFAULT_VALUE    5
-
-
 #define NAS_TMO_IMSI_HPLMN_MAX_NUM       8
 #define NAS_MM_MAX_HOME_NODEB_NAME_LEN  (48)
 
@@ -307,7 +340,6 @@ extern "C" {
 
 #define NAS_MM_MAX_T3396_PLMN_NUM       (7)
 #define NAS_LMM_BAND_MAX_LENTH          (8)
-
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
@@ -1223,7 +1255,6 @@ typedef struct
     VOS_UINT8                           aucOp[NAS_EMM_SOFT_USIM_OP_LEN];
 }NAS_EMM_SOFT_USIM_AUTH_PARAM_STRU;
 
-/*self-adaption NW cause modify begin for leili*/
 
 /*****************************************************************************
 结构名称    :NAS_LMM_ADAPTION_CAUSE_STRU
@@ -1247,7 +1278,6 @@ typedef struct
     VOS_UINT8                           aucRsv[3];
     NAS_LMM_ADAPTION_CAUSE_STRU         astAdaptCause[NAS_LMM_MAX_CAUSE_NUM];
 }LNAS_LMM_CONFIG_NWCAUSE_STRU;
-/*self-adaption NW cause modify end for leili*/
 
 
 /*****************************************************************************
@@ -1317,7 +1347,6 @@ typedef struct
     VOS_UINT32                          ulTimerLen;                             /* 网侧分配的T3402定时器时长(UNIT: 秒) */
     VOS_UINT32                          ulTimerRemainLen;                       /* 关机时Timer暂停状态下的剩余时长(UNIT: ms)*/
 }NAS_PLMN_T3402_STRU;
-
 /*****************************************************************************
 结构名称    :NAS_MM_MT_DETACH_TAU_PLMN_LIST_STRU
 使用说明    :TAU优化网络周期DETACH生效的PLMN列表

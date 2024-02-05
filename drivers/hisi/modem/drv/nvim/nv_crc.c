@@ -307,7 +307,7 @@ u32 nv_crc_check_data_section(u32 resume, u32 *pitemid, u32 *pmodemid)
                         ret = nv_bakup_resume_item(&item_tbl[i], modemid);
                         if(ret)
                         {
-                            nv_printf("resume from bakup failed!\n", item_tbl[i].itemid);
+                            nv_printf("resume from bakup failed!\n");
                             *pitemid  = item_tbl[i].itemid;
                             *pmodemid = modemid;
                             return ret;

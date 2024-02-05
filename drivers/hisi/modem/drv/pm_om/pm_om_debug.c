@@ -294,6 +294,10 @@ static inline void print_ccpu_wakeup_irq_info(void)
 	struct pm_wakeup_irq_info *wakeirq_debug_addr;
 	wakeirq_debug_addr = (struct pm_wakeup_irq_info *)(g_pmom_debug.cdrx_dump_corepm_addr +WAKEUP_IRQ_DEBUG );/*lint !e826 suppress pointer-to-pointer conversion */
 	ret = (u32)readl(g_pmom_debug.cdrx_dump_corepm_addr + WAKEUP_INT_NUM);
+	if (ret > CCPU_WAKEUP_IRQ_NUM_MAX) {
+		printk(KERN_ERR"WAKEUP_INT_NUM %u is too large!\n", ret);
+		return;
+	}
 	cnt += snprintf((char*)print_buf,(size_t)print_buf_size,"[C SR]pm wake cnt:");/*lint !e737 suppress promotion from int to unsigned int */
 	for(i=0;i<ret;i++)
 	{

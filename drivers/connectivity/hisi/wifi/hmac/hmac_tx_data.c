@@ -567,8 +567,8 @@ OAL_STATIC OAL_INLINE oal_void  hmac_tx_classify_lan_to_wlan(oal_netbuf_stru *ps
             pst_tx_ctl->bit_is_vipframe  = OAL_TRUE;
             pst_tx_ctl->bit_is_needretry = OAL_TRUE;
 
-#ifdef _PRE_DEBUG_MODE
             pst_tx_ctl->en_is_eapol      = OAL_TRUE;
+#ifdef _PRE_DEBUG_MODE
             pst_tx_ctl->us_eapol_ts = (oal_uint16)OAL_TIME_GET_STAMP_MS();
             OAM_INFO_LOG0(0, OAM_SF_TX, "{hmac_tx_classify_lan_to_wlan::tx EAPOL.}");
 #endif

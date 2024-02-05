@@ -87,36 +87,28 @@ gups-objs += $(PSDIR)/comm/comm/common/IP/Src/TtfIpComm.o
 gups-objs += $(PSDIR)/comm/comm/common/LINK/Src/TTFUtil.o
 
 ifeq ($(CFG_FEATURE_PPP),FEATURE_ON)
-
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/acf.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/async.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/auth.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/chap.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/hdlc.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ipcp.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/lcp.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/link.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/pap.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_fsm.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_mbuf.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_public.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/pppid.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/proto.o
-gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/throughput.o
 ifeq ($(CFG_FEATURE_HARDWARE_HDLC_FUNC),FEATURE_ON)
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_service.o
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_driver.o
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_mntn.o
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_conf.o
+gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/hdlc_hardware.o
 else
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/hdlc_software.o
-endif
-
 endif
 
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_atcmd.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_init.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_input.o
+gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/ppp_convert.o
+gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/ppp_decode.o
+gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/ppp_encode.o
+gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/ppp_fcs.o
+
+else
+gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/pppa_stub.o
+endif
 
 gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/IpsMntn.o
 gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/NetfilterEx.o

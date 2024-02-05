@@ -94,6 +94,13 @@ struct psam_hal_handle* psam_get_hal(unsigned int version)
 
 MODULE_DEVICE_TABLE(of, psam_match);
 
+void bsp_psam_clear_intr_stat(void)
+{
+    unsigned int stat;
+
+    stat = psam_readl(HI_PSAM_INT0_STAT_OFFSET);
+    psam_writel(stat, HI_PSAM_INT0_STAT_OFFSET);
+}
 
 int bsp_psam_idle(void)
 {

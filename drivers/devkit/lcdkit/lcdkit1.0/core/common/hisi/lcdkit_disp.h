@@ -755,6 +755,24 @@ static struct gpio_desc lcdkit_iovcc_disable_cmds[] =
     },
 };
 
+static struct gpio_desc lcdkit_iovcc_disable_cmds_1[] = {
+	{
+		DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 0,
+		GPIO_LCDKIT_IOVCC_NAME, &lcdkit_info.panel_infos.gpio_lcd_iovcc, 0
+	},
+	{
+		DTYPE_GPIO_INPUT, WAIT_TYPE_MS, 0,
+		GPIO_LCDKIT_IOVCC_NAME, &lcdkit_info.panel_infos.gpio_lcd_iovcc, 0
+	},
+};
+
+static struct gpio_desc lcdkit_vbat_disable_cmds_1[] = {
+	{
+		DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 0,
+		GPIO_LCDKIT_VBAT_NAME, &lcdkit_info.panel_infos.gpio_lcd_vbat, 0
+	}
+};
+
 static struct gpio_desc lcdkit_vbat_disable_cmds[] =
 {
     {

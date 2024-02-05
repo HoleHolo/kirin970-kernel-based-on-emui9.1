@@ -93,8 +93,6 @@ extern int set_tcp_sock_sync_prop(struct bst_set_sock_sync_prop *set_prop);
 extern int set_tcp_sock_closed(struct bst_sock_comm_prop *guide);
 extern int get_tcp_bastet_sock_state(struct bst_get_bastet_sock_state
 			*get_prop);
-extern int bind_local_ports(u16 *local_port);
-extern int unbind_local_ports(u16 local_port);
 extern int adjust_traffic_flow_by_pkg(uint8_t *buf, int cnt);
 extern void bastet_wake_up_traffic_flow(void);
 extern int set_current_net_device_name(char *iface);
@@ -233,22 +231,9 @@ static long bastet_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 		break;
 	}
 	case BST_IOC_APPLY_LOCAL_PORT: {
-		u16 local_port = 0;
-
-		rc = bind_local_ports(&local_port);
-
-		if (copy_to_user(argp, &local_port, sizeof(local_port)))
-			rc = -EFAULT;
 		break;
 	}
 	case BST_IOC_RELEASE_LOCAL_PORT: {
-		u16 local_port;
-
-		if (copy_from_user(&local_port,
-			argp, sizeof(local_port)))
-			break;
-
-		rc = unbind_local_ports(local_port);
 		break;
 	}
 	case BST_IOC_SET_TRAFFIC_FLOW: {

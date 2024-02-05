@@ -228,6 +228,13 @@ enum IPC_STATE_MACHINE {
 	ACK_STATE
 };
 
+enum MAILBOX_WORK_STATUS {
+	MAILBOX_RESUME = 0,
+	MAILBOX_SUSPEND,
+};
+
+static enum MAILBOX_WORK_STATUS mdev_work_status = MAILBOX_RESUME;
+
 extern int hisi_rproc_init(void);
 
 unsigned char _rproc_find_index(const char *mdev_name, unsigned int pro_code)
@@ -1347,12 +1354,18 @@ out:
 	return ret;
 }
 
+bool is_hisi_mbox_suspend(void)
+{
+	return mdev_work_status == MAILBOX_SUSPEND ? true : false;
+}
+
 static int hisi_mdev_suspend(struct device *dev)
 {
 	struct platform_device *pdev = container_of(dev, struct platform_device, dev);
 	struct hisi_ipc_device *idev = platform_get_drvdata(pdev);
 
 	MDEV_INFO("%s: suspend +", __func__);
+	mdev_work_status = MAILBOX_SUSPEND;
 	if (idev)
 		hisi_mbox_device_deactivate(idev->mdev_res);
 	MDEV_INFO("%s: suspend -", __func__);
@@ -1367,6 +1380,7 @@ static int hisi_mdev_resume(struct device *dev)
 	MDEV_INFO("%s: resume +", __func__);
 	if (idev)
 		hisi_mbox_device_activate(idev->mdev_res);
+	mdev_work_status = MAILBOX_RESUME;
 	MDEV_INFO("%s: resume -", __func__);
 	return 0;
 }

@@ -1,4 +1,4 @@
-# MD5: 999fd37dc31e1e1780fc7dc938207615
+# MD5: 61538c5a00ca586f6c73e90368ddf0eb
 CFG_FEATURE_ON                                  := 1
 CFG_FEATURE_OFF                                 := 0
 CFG_FEATURE_ACPU_FC_POINT_REG                   := FEATURE_ON
@@ -28,6 +28,9 @@ CFG_GAS_PTL_VER_R7                              := (PS_PTL_VER_R7)
 CFG_GAS_PTL_VER_R8                              := (PS_PTL_VER_R8)
 CFG_GAS_PTL_VER_R9                              := (PS_PTL_VER_R9)
 CFG_GAS_UE_REL_VER                              := (GAS_PTL_VER_R9)
+CFG_GSM_ENCODIX_VER_083                         := 0
+CFG_GSM_ENCODIX_VER_186                         := 1
+CFG_GSM_ENCODIX_VER                             := GSM_ENCODIX_VER_186
 CFG_FEATURE_DC_MIMO                             := FEATURE_OFF
 CFG_FEATURE_DC_UPA                              := FEATURE_OFF
 CFG_FEATURE_DL_E_CELL_FACH                      := FEATURE_ON

@@ -635,7 +635,8 @@ typedef struct
     oal_uint8                            bit_bad_ap         : 4 ;        /* 场景识别出ap发送beacon带csa但不切信道 */
     oal_uint8                            uc_ch_swt_start_cnt;            /* ap上一次发送的切换个数 */
     oal_uint8                            uc_csa_rsv_cnt;                 /* ap csa 计数不减的计数 */
-    oal_uint8                            uc_resv[2];
+    oal_uint8                            uc_switch_fail;
+    oal_uint8                            uc_resv;
     oal_uint32                           ul_chan_report_for_te_a;
 }mac_ch_switch_info_stru;
 
@@ -3650,16 +3651,14 @@ extern oal_uint32 mac_vap_init_privacy(mac_vap_stru                        *pst_
                                                 mac_cfg80211_connect_security_stru     *pst_mac_security_param);
 
 extern oal_void mac_mib_set_wep(mac_vap_stru *pst_mac_vap, oal_uint8 uc_key_id);
-extern oal_bool_enum_uint8 mac_check_auth_policy(wlan_mib_ieee802dot11_stru *pst_mib_info,
-                                            oal_uint8 uc_policy);
+extern oal_bool_enum_uint8 mac_check_auth_policy(wlan_mib_ieee802dot11_stru *pst_mib_info, oal_uint8 uc_policy);
 extern mac_user_stru  *mac_vap_get_user_by_addr(mac_vap_stru *pst_mac_vap, oal_uint8  *puc_mac_addr);
 extern oal_uint32 mac_vap_add_beacon(mac_vap_stru * pst_mac_vap, mac_beacon_param_stru * pst_beacon_param);
 extern oal_uint32 mac_vap_add_key(mac_vap_stru *pst_mac_vap, mac_user_stru *pst_mac_user, oal_uint8 uc_key_id, mac_key_params_stru *pst_key);
 extern oal_uint8 mac_vap_get_default_key_id(mac_vap_stru *pst_mac_vap);
 extern oal_uint32 mac_vap_set_default_key(mac_vap_stru *pst_mac_vap, oal_uint8  uc_key_index);
 extern oal_uint32 mac_vap_set_default_mgmt_key(mac_vap_stru *pst_mac_vap, oal_uint8 uc_key_index);
-extern void mac_vap_init_user_security_port(mac_vap_stru  *pst_mac_vap,
-                                        mac_user_stru *pst_mac_user);
+extern void mac_vap_init_user_security_port(mac_vap_stru  *pst_mac_vap, mac_user_stru *pst_mac_user);
 extern oal_uint32 mac_vap_set_beacon(mac_vap_stru * pst_mac_vap, mac_beacon_param_stru * pst_beacon_param);
 extern oal_uint8* mac_vap_get_mac_addr(mac_vap_stru *pst_mac_vap);
 #ifdef _PRE_WLAN_FEATURE_11R

@@ -1029,6 +1029,7 @@ struct lcdkit_panel_infos
     u8 rst_after_vbat_flag;
     u8 lcdph_delay_set_flag;
     u8 tddi_tp_gesture_sequence_flag;
+	u8 lcd_poweron_after_bl;
 
     uint32_t delay_af_vsn_off;
     uint32_t delay_af_vsp_off;

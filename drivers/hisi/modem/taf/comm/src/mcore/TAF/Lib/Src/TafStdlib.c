@@ -318,7 +318,7 @@ VOS_UINT32 TAF_STD_ConvertStrToDecInt(
 {
     VOS_UINT32                          ulTmp;
     VOS_UINT32                          ultotal;
-    VOS_UINT8                           ulLength;
+    VOS_UINT32                          ulLength;
 
     ulTmp       = 0;
     ultotal     = 0;
@@ -1470,12 +1470,16 @@ VOS_UINT32 TAF_STD_ExtractBitStringToDword(
 )
 {
     VOS_UINT8                          *pucTmpSrc = VOS_NULL_PTR;
-    VOS_UINT32                          ulExtractWord;
+    VOS_UINT32                          ulExtractWord = 0;
     VOS_UINT16                          usRemainBitLen;
-    VOS_UINT8                           ucIndex;
+    VOS_UINT32                          ulIndex;
     VOS_UINT16                          usByteNum;
 
     pucTmpSrc = pucSrcAddr;
+    if (ucOffsetPos > TAF_STD_BIT_LEN_8_BIT) {
+        MN_INFO_LOG("TAF_STD_ExtractBitStringToDword: ucOffsetPos big than 'TAF_STD_BIT_LEN_8_BIT' ");
+        return ulExtractWord;
+    }
 
     if (ucBitLen > TAF_STD_BIT_LEN_32_BIT)
     {
@@ -1501,7 +1505,7 @@ VOS_UINT32 TAF_STD_ExtractBitStringToDword(
     /* 剩余的码流最少为1字节 */
     usByteNum = (usRemainBitLen / TAF_STD_BIT_LEN_8_BIT) + 1;
 
-    for (ucIndex = 0; ucIndex < usByteNum; ucIndex++)
+    for (ulIndex = 0; ulIndex < usByteNum; ulIndex++)
     {
         /* 指向下一个字节 */
         pucTmpSrc++;

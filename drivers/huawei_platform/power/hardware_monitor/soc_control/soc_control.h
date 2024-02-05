@@ -30,6 +30,9 @@
 
 #define SOC_CTL_RW_BUF_SIZE     32
 
+#define JUDGE_SOC_CTL_ENABLE    1
+#define JUDGE_SOC_CTL_DISABLE   0
+
 enum soc_ctl_op_user {
 	SOC_CTL_OP_USER_BEGIN = 0,
 
@@ -61,6 +64,7 @@ enum soc_ctl_work_mode {
 	WORK_IN_DEFAULT_MODE,
 	WORK_IN_ENABLE_CHG_MODE,
 	WORK_IN_DISABLE_CHG_MODE,
+	WORK_IN_BALANCE_MODE,
 };
 
 struct soc_ctl_dev {
@@ -73,6 +77,7 @@ struct soc_ctl_dev {
 	int enable;
 	int min_soc;
 	int max_soc;
+	int iin_curr;
 };
 
 #endif /* _SOC_CONTROL_H_ */

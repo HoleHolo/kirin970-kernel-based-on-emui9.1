@@ -96,6 +96,11 @@ int bastet_comm_keypsInfo_write(u32 ulState)
     return 0;
 }
 
+int bastet_comm_key_ps_info_write(u32 ulState)
+{
+    return bastet_comm_keypsInfo_write(ulState);
+}
+
 
 void bastet_comm_recv(MsgBlock *pMsg)
 {
@@ -172,6 +177,11 @@ int get_modem_rab_id(struct bst_modem_rab_id *info)
     info->rab_id = stModemInfo.ucRabId;
 
     return 0;
+}
+
+int get_ipv6_modem_rab_id(struct bst_modem_rab_id *info)
+{
+    return -ENOENT;
 }
 
 void bastet_comm_init(void)

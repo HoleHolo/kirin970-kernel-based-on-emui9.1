@@ -692,6 +692,7 @@ BEGIN_CPU_ID_0_PID_DEFINITION()
     DEFINE_PID(I1_DSP_PID_GPHYLOW)          /* = 300 */
     DEFINE_PID(I2_DSP_PID_GPHYLOW)          /* = 301 */
     DEFINE_PID(DSP_PID_UPHY_MNTN)           /* = 302 */
+    DEFINE_PID(MSPS_PID_PPPS)               /* = 303 */
     /* CCPU PID最大不能超过65535,使用65536以及65536以上的PID会造成单板异常复位 */
 
 /******************************************************************************

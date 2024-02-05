@@ -52,48 +52,6 @@
 extern "C"
 {
 #endif
-
-
-#define CORESIGHT_MAGIC_NUM         (0x89ABCDEF)
-#define CORESIGHT_HOTPLUG_MAGICNUM  (0xFEDCBA98)
-#define DUMP_AP_UTRACE_SIZE  0x2400
-#define DUMP_CP_UTRACE_SIZE  0x2400
-
-
-
-/*etm4x*/
-#define MDM_TRCPRGCTLR			0x004
-
-/* etm3x Trace registers (0x000-0x2FC) */
-#define MDM_ETMCR               (0x000)
-#define MDM_ETMSR               (0x010)
-#define MDM_ETMTEEVR            (0x020)
-#define MDM_CORESIGHT_LAR       (0xFB0)
-#define MDM_CORESIGHT_UNLOCK    (0xC5ACCE55)
-
-
-
-struct coresight_etb_data_head_info
-{
-    unsigned int magic;
-    unsigned int length;
-};
-
-#ifdef CONFIG_CORESIGHT
-#if defined(BSP_CONFIG_PHONE_TYPE) && defined(__KERNEL__) /*linux“‘º∞PHONE–ŒÃ¨*/
-static void inline bsp_coresight_enable(void) {  return;   }
-static void inline bsp_coresight_disable(void){  return;   }
-static void inline bsp_coresight_suspend(void){  return;   }
-static void inline bsp_coresight_resume(void) {  return;   }
-#else
-void bsp_coresight_enable(void);
-void bsp_coresight_disable(void);
-void bsp_coresight_suspend(void);
-void bsp_coresight_resume(void);
-#endif
-void bsp_coresight_save_cp_etb(char* dir_name);
-int bsp_coresight_stop_cp(void);
-#else
 static unsigned int inline  bsp_coresight_init(void)   {  return 0; }
 static void inline bsp_coresight_enable(void) {  return;   }
 static void inline bsp_coresight_disable(void){  return;   }
@@ -102,7 +60,6 @@ static void inline bsp_coresight_resume(void) {  return;   }
 static void inline bsp_coresight_save_cp_data(void){  return;   }
 static void inline bsp_coresight_save_cp_etb(char* dir_name){  return;   }
 static int inline bsp_coresight_stop_cp(void){ return 0;}
-#endif
 
 #ifdef __cplusplus
 }

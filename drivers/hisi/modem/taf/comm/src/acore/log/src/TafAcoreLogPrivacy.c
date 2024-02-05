@@ -215,6 +215,8 @@ AT_LOG_PRIVACY_MATCH_AT_CMD_MAP_TBL_STRU                    g_astPrivacyMatchAtC
     {"\r\n+CLCC"                ,   "\r\n+CLCC\r\n"},
     {"\r\n^CLCC"                ,   "\r\n^CLCC\r\n"},
     {"\r\n^CLPR"                ,   "\r\n^CLPR\r\n"},
+    {"\r\nRING"                 ,   "\r\nRING\r\n"},
+    {"\r\n+CRING"               ,   "\r\n+CRING\r\n"},
 
     /* ≤π≥‰“µŒÒ√¸¡Ó */
     {"AT+CCFC"                  ,   "AT+CCFC"},
@@ -228,6 +230,7 @@ AT_LOG_PRIVACY_MATCH_AT_CMD_MAP_TBL_STRU                    g_astPrivacyMatchAtC
     {"\r\n^CUSS"                ,   "\r\n^CUSS\r\n"},
     {"\r\n^CCWA"                ,   "\r\n^CCWA\r\n"},
     {"\r\n^CSSI"                ,   "\r\n^CSSI\r\n"},
+    {"\r\nIRING"                ,   "\r\nIRING\r\n"},
     {"\r\n+CCWA"                ,   "\r\n+CCWA\r\n"},
     {"\r\n+CNAP"                ,   "\r\n+CNAP\r\n"},
     {"\r\n^CNAP"                ,   "\r\n^CNAP\r\n"},

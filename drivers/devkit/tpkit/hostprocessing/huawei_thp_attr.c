@@ -546,7 +546,7 @@ static DEVICE_ATTR(charger_state, (S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP),
 			thp_host_charger_state_show, thp_host_charger_state_store);
 static DEVICE_ATTR(roi_data, (S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP),
 			 thp_roi_data_show, thp_roi_data_store);
-static DEVICE_ATTR(roi_data_internal, S_IRUGO, thp_roi_data_debug_show, NULL);
+static DEVICE_ATTR(roi_data_internal, 0400, thp_roi_data_debug_show, NULL);
 static DEVICE_ATTR(roi_enable, (S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP),
 			thp_roi_enable_show, thp_roi_enable_store);
 static DEVICE_ATTR(touch_sensitivity, (S_IRUSR | S_IRGRP | S_IWUSR | S_IWGRP),

@@ -386,6 +386,10 @@ void rdr_notify_module_reset(u32 modid, struct rdr_exception_info_s *e_info)
 				     rdr_reboot_later_flag == true ? "true" : "false",
 				     rdr_syserr_list_empty() ? "empty" : "Non empty",
 				     mask & p_module_ops->s_core_id);
+			/* 如果指定立即复位或者 之前有需要复位异常但因有异常未处理而搁置的复位
+			  * 动作并且当前链表是空的情况下 或者当前异常需要AP复位并且没有异常需要
+			  * 处理做AP复位动作
+			  */
 			if (e_info->e_reboot_priority == RDR_REBOOT_NOW ||
 			    ((rdr_reboot_later_flag || (mask & p_module_ops->s_core_id))
 			     && rdr_syserr_list_empty())) {

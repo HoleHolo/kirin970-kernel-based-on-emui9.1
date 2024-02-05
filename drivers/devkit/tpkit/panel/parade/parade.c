@@ -8425,7 +8425,7 @@ static u32 cmcp_get_case_info_from_threshold_file(const char *buf,
 /* Compose one value based on data of each bit */
 static int cmcp_compose_data(char *buf, u32 count)
 {
-	u32 base_array[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
+	u32 base_array[] = {1, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9};
 	int value = 0;
 	u32 index = 0;
 

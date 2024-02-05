@@ -677,7 +677,7 @@ VOS_UINT32 atMatchCmdName (VOS_UINT8 ucClientId, VOS_UINT32 CmdType)
     pCmdTblList = &(g_stCmdTblList);
 
     /* 全部格式化为大写字符 */
-    if(AT_FAILURE == At_UpString(g_stATParseCmd.stCmdName.aucCmdName,g_stATParseCmd.stCmdName.usCmdNameLen))
+    if(AT_FAILURE == At_UpString(g_stATParseCmd.stCmdName.aucCmdName,TAF_MIN(g_stATParseCmd.stCmdName.usCmdNameLen, AT_CMD_NAME_LEN)))
     {
         return AT_ERROR;
     }

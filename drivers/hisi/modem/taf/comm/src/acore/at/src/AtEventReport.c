@@ -5173,7 +5173,9 @@ TAF_VOID At_SsRspInterrogateCnfProc(
     TAF_UINT16                          *pusLength
 )
 {
-   /* TAF_UINT8                           ucTmp    = 0;*/
+    if (g_stParseContext[ucIndex].pstCmdElement == VOS_NULL_PTR) {
+        return;
+    }
 
     switch(g_stParseContext[ucIndex].pstCmdElement->ulCmdIndex)
     {
@@ -5217,9 +5219,11 @@ TAF_VOID At_SsRspInterrogateCnfProc(
         AT_SsRspInterrogateCnfCnapProc(ucIndex, pEvent, pulResult, pusLength);
         break;
 
+    /* 直接返回 防止错误清除其他命令处理状态 */
     default:
-        break;
+        return;
     }
+    AT_STOP_TIMER_CMD_READY(ucIndex);
 }
 
 
@@ -5354,7 +5358,6 @@ TAF_VOID At_SsRspProc(TAF_UINT8  ucIndex,TAF_SS_CALL_INDEPENDENT_EVENT_STRU  *pE
         {
         case TAF_SS_EVT_INTERROGATESS_CNF:          /* 查询结果上报 */
             At_SsRspInterrogateCnfProc(ucIndex, pEvent, &ulResult, &usLength);
-            AT_STOP_TIMER_CMD_READY(ucIndex);
             break;
 
         case TAF_SS_EVT_ERASESS_CNF:
@@ -7702,7 +7705,7 @@ VOS_UINT32 At_QryParaPlmnListProc(
     TAF_MMA_PLMN_LIST_CNF_STRU         *pstPlmnListCnf;
     TAF_MMA_PLMN_LIST_CNF_PARA_STRU    *pstPlmnList;
     VOS_UINT16                          usLength;
-    VOS_UINT8                           ucTmp;
+    VOS_UINT32                          ulTmp;
     VOS_UINT8                           ucIndex;
     TAF_MMA_PLMN_LIST_PARA_STRU         stPlmnListPara;
     AT_RRETURN_CODE_ENUM_UINT32         enResult;
@@ -7757,54 +7760,55 @@ VOS_UINT32 At_QryParaPlmnListProc(
         usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"%s: ",g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
     }
 
-    for(ucTmp = 0; ucTmp < pstPlmnList->ulPlmnNum; ucTmp++)
+    pstPlmnList->ulPlmnNum = AT_MIN(pstPlmnList->ulPlmnNum, TAF_MMA_MAX_PLMN_NAME_LIST_NUM);
+    for(ulTmp = 0; ulTmp < pstPlmnList->ulPlmnNum; ulTmp++)
     {
-        if((0 != ucTmp)
+        if((0 != ulTmp)
         || (0 != pstPlmnList->ulCurrIndex))/* 除第一项外，其它以前要加逗号 */
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",");
         }
 
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"(%d",pstPlmnList->astPlmnInfo[ucTmp].PlmnStatus);
+        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"(%d",pstPlmnList->astPlmnInfo[ulTmp].PlmnStatus);
 
-        if (( '\0' == pstPlmnList->astPlmnName[ucTmp].aucOperatorNameLong[0] )
-         || ( '\0' == pstPlmnList->astPlmnName[ucTmp].aucOperatorNameShort[0] ))
+        if (( '\0' == pstPlmnList->astPlmnName[ulTmp].aucOperatorNameLong[0] )
+         || ( '\0' == pstPlmnList->astPlmnName[ulTmp].aucOperatorNameShort[0] ))
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"\"");
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"\"");
         }
         else
         {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ucTmp].aucOperatorNameLong);
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ucTmp].aucOperatorNameShort);
+            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ulTmp].aucOperatorNameLong);
+            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ulTmp].aucOperatorNameShort);
         }
 
         usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%X%X%X",
-            (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 8,
-            (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 4,
-            (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc)
+            (0x0f00 & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mcc) >> 8,
+            (0x00f0 & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mcc) >> 4,
+            (0x000f & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mcc)
             );
 
-        if(0x0F != ((0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 8))
+        if(0x0F != ((0x0f00 & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mnc) >> 8))
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"%X",
-            (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 8
+            (0x0f00 & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mnc) >> 8
             );
 
         }
         usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"%X%X\"",
-            (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 4,
-            (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc)
+            (0x00f0 & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mnc) >> 4,
+            (0x000f & pstPlmnList->astPlmnName[ulTmp].PlmnId.Mnc)
             );
-        if(TAF_PH_RA_GSM == pstPlmnList->astPlmnInfo[ucTmp].RaMode)  /* GSM */
+        if(TAF_PH_RA_GSM == pstPlmnList->astPlmnInfo[ulTmp].RaMode)  /* GSM */
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",0");
         }
-        else if(TAF_PH_RA_WCDMA == pstPlmnList->astPlmnInfo[ucTmp].RaMode)     /* CDMA */
+        else if(TAF_PH_RA_WCDMA == pstPlmnList->astPlmnInfo[ulTmp].RaMode)     /* CDMA */
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",2");
         }
-        else if(TAF_PH_RA_LTE == pstPlmnList->astPlmnInfo[ucTmp].RaMode)   /* LTE */
+        else if(TAF_PH_RA_LTE == pstPlmnList->astPlmnInfo[ulTmp].RaMode)   /* LTE */
         {
             usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",7");
         }
@@ -18960,7 +18964,7 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicPrimPdpContextInfoCnf(
 {
     VOS_UINT32                          ulResult = AT_FAILURE;
     VOS_UINT16                          usLength = 0;
-    VOS_UINT8                           ucTmp = 0;
+    VOS_UINT32                          ulTmp = 0;
     VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
     VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
 
@@ -18982,14 +18986,14 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicPrimPdpContextInfoCnf(
 
     if( VOS_OK == pstGetDynamicPdpCtxInfoCnf->enCause )
     {
-        for(ucTmp = 0; ucTmp < pstGetDynamicPdpCtxInfoCnf->ulCidNum; ucTmp++)
+        for(ulTmp = 0; ulTmp < pstGetDynamicPdpCtxInfoCnf->ulCidNum; ulTmp++)
         {
-            if(0 != ucTmp)
+            if(0 != ulTmp)
             {
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s",gaucAtCrLf);
             }
 
-            TAF_MEM_CPY_S(&stCgdcont, sizeof(stCgdcont), &pstGetDynamicPdpCtxInfoCnf->astPdpContxtInfo[ucTmp], sizeof(TAF_PDP_DYNAMIC_PRIM_EXT_STRU));
+            TAF_MEM_CPY_S(&stCgdcont, sizeof(stCgdcont), &pstGetDynamicPdpCtxInfoCnf->astPdpContxtInfo[ulTmp], sizeof(TAF_PDP_DYNAMIC_PRIM_EXT_STRU));
 
             /* +CGCONTRDP:  */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s: ",g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
@@ -19200,7 +19204,7 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicSecPdpContextInfoCnf(
 {
     VOS_UINT32                          ulResult = AT_FAILURE;
     VOS_UINT16                          usLength = 0;
-    VOS_UINT8                           ucTmp = 0;
+    VOS_UINT32                          ulTmp = 0;
 
     TAF_PDP_DYNAMIC_SEC_EXT_STRU       stCgdscont;
     TAF_PS_GET_DYNAMIC_SEC_PDP_CONTEXT_INFO_CNF_STRU  *pstGetDynamicPdpCtxInfoCnf = VOS_NULL_PTR;
@@ -19216,14 +19220,14 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicSecPdpContextInfoCnf(
 
     if( VOS_OK == pstGetDynamicPdpCtxInfoCnf->enCause )
     {
-        for(ucTmp = 0; ucTmp < pstGetDynamicPdpCtxInfoCnf->ulCidNum; ucTmp++)
+        for(ulTmp = 0; ulTmp < pstGetDynamicPdpCtxInfoCnf->ulCidNum; ulTmp++)
         {
-            if(0 != ucTmp)
+            if(0 != ulTmp)
             {
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s",gaucAtCrLf);
             }
 
-            TAF_MEM_CPY_S(&stCgdscont, sizeof(stCgdscont), &pstGetDynamicPdpCtxInfoCnf->astPdpContxtInfo[ucTmp], sizeof(TAF_PDP_DYNAMIC_SEC_EXT_STRU));
+            TAF_MEM_CPY_S(&stCgdscont, sizeof(stCgdscont), &pstGetDynamicPdpCtxInfoCnf->astPdpContxtInfo[ulTmp], sizeof(TAF_PDP_DYNAMIC_SEC_EXT_STRU));
 
             /* +CGSCONTRDP:  */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s: ",g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
@@ -19259,7 +19263,7 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
     VOS_UINT32                          ulResult = AT_FAILURE;
     VOS_UINT16                          usLength = 0;
     VOS_UINT8                           ucIndex1 = 0;
-    VOS_UINT8                           ucIndex2 = 0;
+    VOS_UINT32                          ulIndex2 = 0;
     VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
     VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
     VOS_CHAR                            aucLocalIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
@@ -19295,9 +19299,9 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
     {
         for (ucIndex1 = 0; ucIndex1 < pstGetDynamicTftInfoCnf->ulCidNum; ucIndex1++)
         {
-            for (ucIndex2 = 0; ucIndex2 < pstGetDynamicTftInfoCnf->astPfTftInfo[ucIndex1].ulPFNum; ucIndex2++)
+            for (ulIndex2 = 0; ulIndex2 < AT_MIN(pstGetDynamicTftInfoCnf->astPfTftInfo[ucIndex1].ulPFNum, TAF_MAX_SDF_PF_NUM); ulIndex2++)
             {
-                if (!(0 == ucIndex1 && 0 == ucIndex2))
+                if (!(0 == ucIndex1 && 0 == ulIndex2))
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s",gaucAtCrLf);
                 }
@@ -19309,9 +19313,9 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 /* <cid> */
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%d",pstCgtft->ulCid);
                 /* <packet filter identifier> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpPktFilterId)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpPktFilterId)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucPacketFilterId);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ulIndex2].ucPacketFilterId);
                 }
                 else
                 {
@@ -19319,9 +19323,9 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 }
 
                 /* <evaluation precedence index> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpPrecedence)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpPrecedence)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucPrecedence);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ulIndex2].ucPrecedence);
                 }
                 else
                 {
@@ -19329,24 +19333,24 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 }
 
                 /* <source address and subnet> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSrcIp)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpSrcIp)
                 {
-                    if ( (TAF_PDP_IPV4 == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType)
-                      || (TAF_PDP_PPP == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType) )
+                    if ( (TAF_PDP_IPV4 == pstCgtft->astTftInfo[ulIndex2].stSourceIpaddr.enPdpType)
+                      || (TAF_PDP_PPP == pstCgtft->astTftInfo[ulIndex2].stSourceIpaddr.enPdpType) )
                     {
-                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.aucIpv4Addr);
+                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ulIndex2].stSourceIpaddr.aucIpv4Addr);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s",acIpv4StrTmp);
 
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,".");
 
-                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].stSourceIpMask.aucIpv4Addr);
+                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ulIndex2].stSourceIpMask.aucIpv4Addr);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s\"",acIpv4StrTmp);
                     }
-                    else if(TAF_PDP_IPV6 == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType)
+                    else if(TAF_PDP_IPV6 == pstCgtft->astTftInfo[ulIndex2].stSourceIpaddr.enPdpType)
                     {
                         (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                               pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.aucIpv6Addr,
-                                                               pstCgtft->astTftInfo[ucIndex2].stSourceIpMask.aucIpv6Addr);
+                                                               pstCgtft->astTftInfo[ulIndex2].stSourceIpaddr.aucIpv6Addr,
+                                                               pstCgtft->astTftInfo[ulIndex2].stSourceIpMask.aucIpv6Addr);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
                     }
                     else
@@ -19360,27 +19364,27 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 }
 
                 /* <protocal number(ipv4)/next header ipv6> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpProtocolId)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpProtocolId)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucProtocolId);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ulIndex2].ucProtocolId);
                 }
                 else
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
                 }
                 /* <destination port range> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpDestPortRange)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpDestPortRange)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].usLowDestPort,pstCgtft->astTftInfo[ucIndex2].usHighDestPort);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ulIndex2].usLowDestPort,pstCgtft->astTftInfo[ulIndex2].usHighDestPort);
                 }
                 else
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
                 }
                 /* <source port range> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSrcPortRange)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpSrcPortRange)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].usLowSourcePort,pstCgtft->astTftInfo[ucIndex2].usHighSourcePort);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ulIndex2].usLowSourcePort,pstCgtft->astTftInfo[ulIndex2].usHighSourcePort);
                 }
                 else
                 {
@@ -19388,18 +19392,18 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 }
 
                 /* <ipsec security parameter index(spi)> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSpi)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpSpi)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ucIndex2].ulSecuParaIndex);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ulIndex2].ulSecuParaIndex);
                 }
                 else
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
                 }
                 /* <type os service(tos) (ipv4) and mask> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpTosMask)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpTosMask)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].ucTypeOfService,pstCgtft->astTftInfo[ucIndex2].ucTypeOfServiceMask);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ulIndex2].ucTypeOfService,pstCgtft->astTftInfo[ulIndex2].ucTypeOfServiceMask);
                 }
                 else
                 {
@@ -19408,18 +19412,18 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 /* <traffic class (ipv6) and mask> */
 
                 /* <flow lable (ipv6)> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpFlowLable)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpFlowLable)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ucIndex2].ulFlowLable);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ulIndex2].ulFlowLable);
                 }
                 else
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
                 }
                 /* <direction> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpDirection)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpDirection)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucDirection);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ulIndex2].ucDirection);
                 }
                 else
                 {
@@ -19427,9 +19431,9 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 }
 
                 /* <NW packet filter Identifier> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpNwPktFilterId)
+                if(1 == pstCgtft->astTftInfo[ulIndex2].bitOpNwPktFilterId)
                 {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucNwPktFilterId);
+                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ulIndex2].ucNwPktFilterId);
                 }
                 else
                 {
@@ -19442,21 +19446,21 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 if (AT_IsSupportReleaseRst(AT_ACCESS_STRATUM_REL11))
                 {
                     /* <local address and subnet> */
-                    if ( 1 == pstCgtft->astTftInfo[ucIndex2].bitOpLocalIpv4AddrAndMask )
+                    if ( 1 == pstCgtft->astTftInfo[ulIndex2].bitOpLocalIpv4AddrAndMask )
                     {
-                        AT_Ipv4AddrItoa(aucLocalIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].aucLocalIpv4Addr);
+                        AT_Ipv4AddrItoa(aucLocalIpv4StrTmp, pstCgtft->astTftInfo[ulIndex2].aucLocalIpv4Addr);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s",aucLocalIpv4StrTmp);
 
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,".");
 
-                        AT_Ipv4AddrItoa(aucLocalIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].aucLocalIpv4Mask);
+                        AT_Ipv4AddrItoa(aucLocalIpv4StrTmp, pstCgtft->astTftInfo[ulIndex2].aucLocalIpv4Mask);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s\"",aucLocalIpv4StrTmp);
                     }
-                    else if ( 1 == pstCgtft->astTftInfo[ucIndex2].bitOpLocalIpv6AddrAndMask )
+                    else if ( 1 == pstCgtft->astTftInfo[ulIndex2].bitOpLocalIpv6AddrAndMask )
                     {
-                        AT_GetIpv6MaskByPrefixLength(pstCgtft->astTftInfo[ucIndex2].ucLocalIpv6Prefix, aucLocalIpv6Mask);
+                        AT_GetIpv6MaskByPrefixLength(pstCgtft->astTftInfo[ulIndex2].ucLocalIpv6Prefix, aucLocalIpv6Mask);
                         (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                               pstCgtft->astTftInfo[ucIndex2].aucLocalIpv6Addr,
+                                                               pstCgtft->astTftInfo[ulIndex2].aucLocalIpv6Addr,
                                                                aucLocalIpv6Mask);
                         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
                     }
@@ -19606,7 +19610,7 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicEpsQosInfoCnf(
 {
     VOS_UINT32                          ulResult = AT_FAILURE;
     VOS_UINT16                          usLength = 0;
-    VOS_UINT8                           ucTmp = 0;
+    VOS_UINT32                          ulTmp = 0;
 
     TAF_EPS_QOS_EXT_STRU                       stCgeqos;
     TAF_PS_GET_DYNAMIC_EPS_QOS_INFO_CNF_STRU  *pstGetDynamicEpsQosInfoCnf = VOS_NULL_PTR;
@@ -19623,14 +19627,14 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicEpsQosInfoCnf(
 
     if(VOS_OK == pstGetDynamicEpsQosInfoCnf->enCause)
     {
-        for(ucTmp = 0; ucTmp < pstGetDynamicEpsQosInfoCnf->ulCidNum; ucTmp++)
+        for(ulTmp = 0; ulTmp < pstGetDynamicEpsQosInfoCnf->ulCidNum; ulTmp++)
         {
-            if(0 != ucTmp)
+            if(0 != ulTmp)
             {
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s",gaucAtCrLf);
             }
 
-            TAF_MEM_CPY_S(&stCgeqos, sizeof(stCgeqos), &pstGetDynamicEpsQosInfoCnf->astEpsQosInfo[ucTmp], sizeof(TAF_EPS_QOS_EXT_STRU));
+            TAF_MEM_CPY_S(&stCgeqos, sizeof(stCgeqos), &pstGetDynamicEpsQosInfoCnf->astEpsQosInfo[ulTmp], sizeof(TAF_EPS_QOS_EXT_STRU));
 
             /* +CGEQOSRDP:  */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s: ",g_stParseContext[ucIndex].pstCmdElement->pszCmdName);

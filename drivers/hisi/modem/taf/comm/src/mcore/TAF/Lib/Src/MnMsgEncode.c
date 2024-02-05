@@ -6,7 +6,7 @@
 * apply:
 *
 * * This program is free software; you can redistribute it and/or modify
-* * it under the terms of the GNU General Public License version 2 and 
+* * it under the terms of the GNU General Public License version 2 and
 * * only version 2 as published by the Free Software Foundation.
 * *
 * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
 * * 2) Redistributions in binary form must reproduce the above copyright
 * *    notice, this list of conditions and the following disclaimer in the
 * *    documentation and/or other materials provided with the distribution.
-* * 3) Neither the name of Huawei nor the names of its contributors may 
-* *    be used to endorse or promote products derived from this software 
+* * 3) Neither the name of Huawei nor the names of its contributors may
+* *    be used to endorse or promote products derived from this software
 * *    without specific prior written permission.
-* 
+*
 * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -577,7 +577,7 @@ LOCAL VOS_UINT32 MSG_EncodeUdhSpecialSm(
     pucUdh[ucLen++] = pstSpecialSm->ucMsgCount;
 
     *pucIeiLen = ucLen;
-    
+
 
     return MN_ERR_NO_ERROR;
 }
@@ -1831,7 +1831,8 @@ VOS_UINT32   MSG_RequireSegment(
 VOS_UINT32   MN_MSG_Segment(
     const MN_MSG_SUBMIT_LONG_STRU       *pstLongSubmit,
     VOS_UINT8                           *pucNum,
-    MN_MSG_RAW_TS_DATA_STRU             *pstRawData
+    MN_MSG_RAW_TS_DATA_STRU             *pstRawData,
+    VOS_UINT32                           ulMaxSmsSegment
 )
 {
     VOS_UINT32                          ulUdhl              = 0;
@@ -1932,6 +1933,14 @@ VOS_UINT32   MN_MSG_Segment(
 
     /*计算分段后分段的个数并填充各分段的MN_MSG_SUBMIT_STRU结构数据*/
     *pucNum = (VOS_UINT8)((pstLongSubmit->stLongUserData.ulLen + (ulLen - 1))/ulLen);
+
+    if (*pucNum > ulMaxSmsSegment)
+    {
+        MN_WARN_LOG("MN_MSG_Segment: the length overflow STK segment capability.");
+        PS_MEM_FREE(WUEPS_PID_TAF, pstSubmit);
+        return MN_ERR_CLASS_SMS_INTERNAL;
+    }
+
     pstConcat_8->ucTotalNum     = (*pucNum);
     for (ulLoop = 0; ulLoop < (*pucNum); ulLoop++)
     {

@@ -134,7 +134,7 @@ KBUILD_DTBS	:= dtbs
 ifeq ($(link_kernel),false)
 all:    $(KBUILD_DTBS)
 else
-all:    $(KBUILD_IMAGE) $(KBUILD_DTBS)
+all:    $(KBUILD_IMAGE)
 endif
 
 boot := arch/arm64/boot

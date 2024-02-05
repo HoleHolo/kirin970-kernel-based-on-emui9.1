@@ -372,7 +372,7 @@ VOS_UINT32 atQryLTCommCmdParaCnfProc(VOS_UINT8 ucClientId, VOS_VOID *pMsgBlock)
     VOS_UINT16 usCRC_L                 = 0;
     VOS_UINT16 usCRC_H                 = 0;
     VOS_UINT16 usLength                = 0;
-    VOS_UINT16 i                       = 0;
+    VOS_UINT32 i                       = 0;
 
     if (!pMsgBlock){
             (VOS_VOID)vos_printf("[%s]pMsgBlock null\n",__FUNCTION__);

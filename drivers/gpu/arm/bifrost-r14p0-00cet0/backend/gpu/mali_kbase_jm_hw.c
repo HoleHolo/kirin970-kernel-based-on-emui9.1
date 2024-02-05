@@ -126,7 +126,7 @@ void kbase_job_hw_submit(struct kbase_device *kbdev,
 	/* checked whether cross slot have diferent kctx,
 	 * if yes, force invalid and flush */
 	for (slot_nr = 0; slot_nr < kbdev->gpu_props.num_job_slots; slot_nr++) {
-		for (i = 0; i < kbdev->gpu_props.num_job_slots; i++) {
+		for (i = 0; i < SLOT_RB_SIZE; i++) {
 			if (kctx !=  kbdev->force_l2_flush.last_two_context_per_slot[slot_nr][i]) {
 				force_invalidate_flush = true;
 				break;

@@ -66,6 +66,7 @@ int mdrv_pm_log(int mod_id,  unsigned int data_len , void *data)
 	else if (mod_id >= PM_OM_MOD_ID_ENUM_MAX)
 	{
 		pmom_pr_err("err: invalid mod_id(%d)\n", mod_id);
+		return -1;
 	}
 
 	ret = bsp_pm_log((u32)mod_id, data_len, data);
@@ -79,10 +80,12 @@ int mdrv_pm_info_stat_register(pm_info_cbfun pcbfun, struct pm_info_usr_data *us
 	if (usr_data == NULL || pcbfun == NULL)
 	{
 		pmom_pr_err("null pointer: usr_data(%p), pcbfun(%p)\n", usr_data, pcbfun);
+		return -1;
 	}
 	else if (usr_data->mod_id >= PM_OM_MOD_ID_ENUM_MAX)
 	{
 		pmom_pr_err("err: invalid mod_id(%d)\n", usr_data->mod_id);
+		return -1;
 	}
 
 	ret = bsp_pm_info_stat_register(pcbfun, usr_data);

@@ -1824,8 +1824,8 @@ struct kbase_device {
 	u32 js_ctx_scheduling_mode;
 
 	struct {
-		u8 counter[SLOT_RB_SIZE];
-		struct kbase_context *last_two_context_per_slot[SLOT_RB_SIZE][SLOT_RB_SIZE];
+		u8 counter[JOB_SLOT_NUM];
+		struct kbase_context *last_two_context_per_slot[JOB_SLOT_NUM][SLOT_RB_SIZE];
 	} force_l2_flush;
 
 	/* refcount for regulator,

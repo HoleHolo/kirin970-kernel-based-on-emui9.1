@@ -26,12 +26,7 @@
 
 #define SCONTEXT "u:r:logserver:s0"
 #define HCFG_VAL_SIZE_MAX ((ZRHUNG_CFG_VAL_LEN_MAX+1)*ZRHUNG_CFG_ENTRY_NUM)
-
-enum hcfg_feature {
-	HCFG_FEATURE_V1 = 0,
-	HCFG_FEATURE_V2
-};
-
+static const uint32_t HCFG_FEATURE_VERSION = 1;
 #define NOT_SUPPORT	-2
 #define NO_CONFIG	-1
 #define NOT_READY	1
@@ -41,13 +36,7 @@ struct hcfg_entry {
 	uint32_t valid:1;
 };
 
-struct hcfg_table_v1 {
-	uint64_t len;
-	struct hcfg_entry entry[ZRHUNG_CFG_CAT_NUM_MAX];
-	char data[0];
-};
-
-struct hcfg_table_v2 {
+struct hcfg_table_version {
 	uint64_t len;
 	struct hcfg_entry entry[ZRHUNG_CFG_ENTRY_NUM];
 	char data[0];
@@ -97,6 +86,7 @@ int hcfgk_set_cfg(struct file *file, void __user*arg)
 	void* tmp = NULL;
 	uint64_t table_len = 0;
 	uint64_t entry_num = 0;
+	struct hcfg_table_version *t = NULL;
 
 	if(!arg)
 		return -EINVAL;
@@ -106,18 +96,18 @@ int hcfgk_set_cfg(struct file *file, void __user*arg)
 		printk(KERN_ERR "copy hung config table from user failed.\n");
 		return ret;
 	}
-	if(len > HCFG_VAL_SIZE_MAX)
+	if(len > HCFG_VAL_SIZE_MAX || len <= 0)
 		return -EINVAL;
 
 	spin_lock(&lock);
 
-	if(ctx.cfg_feature == HCFG_FEATURE_V2) {
-		table_len = sizeof(struct hcfg_table_v2);
-		entry_num = ZRHUNG_CFG_ENTRY_NUM;
-	} else {
-		table_len = sizeof(struct hcfg_table_v1);
-		entry_num = ZRHUNG_CFG_CAT_NUM_MAX;
+	if (ctx.cfg_feature != HCFG_FEATURE_VERSION) {
+		spin_unlock(&lock);
+		pr_err("cfg_feature is invalid\n");
+		return -EINVAL;
 	}
+	table_len = sizeof(struct hcfg_table_version);
+	entry_num = ZRHUNG_CFG_ENTRY_NUM;
 
 	spin_unlock(&lock);
 
@@ -148,15 +138,16 @@ int hcfgk_set_cfg(struct file *file, void __user*arg)
 	/*
 	 * init table entry
 	 */
-	if(ctx.cfg_feature == HCFG_FEATURE_V2) {
-		struct hcfg_table_v2 *t = ctx.user_table;
-		ctx.table.entry = t->entry;
-		ctx.table.data = t->data;
-	} else {
-		struct hcfg_table_v1 *t = ctx.user_table;
-		ctx.table.entry = t->entry;
-		ctx.table.data = t->data;
+	if (ctx.cfg_feature != HCFG_FEATURE_VERSION) {
+		spin_unlock(&lock);
+		pr_err("cfg_feature is invalid\n");
+		vfree(user_table);
+		return -EINVAL;
 	}
+
+	t = ctx.user_table;
+	ctx.table.entry = t->entry;
+	ctx.table.data = t->data;
 
 	/*
 	 * make sure last byte in data is 0 terminated
@@ -295,10 +286,6 @@ int hcfgk_set_feature(struct file *file, void __user *arg)
 
 	spin_lock(&lock);
 
-	if(ctx.table.entry != NULL || ctx.cfg_feature != HCFG_FEATURE_V1) {
-		spin_unlock(&lock);
-		return -EPERM;
-	}
 	ctx.cfg_feature = feature;
 
 	spin_unlock(&lock);

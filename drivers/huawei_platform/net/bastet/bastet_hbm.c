@@ -359,7 +359,7 @@ int bastet_filter_hb_reply(struct bst_sock_id *guide)
 		return -ENOENT;
 	}
 	if (is_wifi_proxy(sk)) {
-		BASTET_LOGI("filter heartbeat reply, sk: %p", sk);
+		BASTET_LOGI("filter heartbeat reply");
 		atomic_inc(&sk->bastet->hbm.reply_filter_cnt);
 	}
 	sock_put(sk);
