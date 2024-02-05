@@ -833,7 +833,6 @@ static inline void update_prevent_sleep_time(struct wakeup_source *ws,
 					     ktime_t now) {}
 #endif
 
-
 /**
  * wakup_source_deactivate - Mark given wakeup source as inactive.
  * @ws: Wakeup source to handle.
