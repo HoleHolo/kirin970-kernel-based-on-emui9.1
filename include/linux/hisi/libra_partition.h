@@ -338,7 +338,12 @@ static const struct partition partition_table_ufs[] =
   {PART_VBMETA_A,           724*1024,  4*1024,      UFS_PART_3},/* vbmeta_a           4M    p52*/
   {PART_MODEMNVM_UPDATE_A,  728*1024, 16*1024,      UFS_PART_3},/* modemnvm_update_a  16M   p53*/
   {PART_MODEMNVM_CUST_A,    744*1024, 16*1024,      UFS_PART_3},/* modemnvm_cust_a    16M   p54*/
+#if (defined(CONFIG_MARKET_INTERNAL) || defined(CONFIG_MARKET_OVERSEA) || defined(CONFIG_MARKET_FULL_INTERNAL) || defined(CONFIG_MARKET_FULL_OVERSEA))
+  /* rom update */
+  {PART_RESERVED8,          760*1024,  32*1024,     UFS_PART_3},/* reserved8          32M    p59*/
+#else
   {PART_PATCH_A,            760*1024, 32*1024,      UFS_PART_3},/* patch              32M   p55*/
+#endif
 #ifdef CONFIG_NEW_PRODUCT_P
   {PART_CACHE,              792*1024,  104*1024,    UFS_PART_3},/* version          104M   p56*/
   #ifdef CONFIG_USE_EROFS
@@ -447,8 +452,9 @@ static const struct partition partition_table_ufs[] =
   {PART_CUST_A,             1776*1024, 192*1024,    UFS_PART_3},/* cust            192M   p59*/
   {PART_ODM_A,              1968*1024, 176*1024,    UFS_PART_3},/* odm             176M   p60*/
   {PART_CACHE,              2144*1024, 104*1024,    UFS_PART_3},/* cache           104M   p61*/
-  {PART_SYSTEM_A,           2248*1024, 3088*1024,   UFS_PART_3},/* system         3088M   p62*/
-  {PART_USERDATA,           5336*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p63*/
+  {PART_SYSTEM_A,           2248*1024, 2888*1024,   UFS_PART_3},/* system         2888M   p62*/
+  {PART_PATCH_A,            5136*1024, 200*1024,    UFS_PART_3},/* patch           200M   p63*/
+  {PART_USERDATA,           5336*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p64*/
   #elif defined CONFIG_MARKET_OVERSEA
   {PART_VERSION_A,          792*1024,  32*1024,     UFS_PART_3},/* version         32M    p56*/
   {PART_VENDOR_A,           824*1024,  760*1024,    UFS_PART_3},/* vendor          760M   p57*/
@@ -456,8 +462,9 @@ static const struct partition partition_table_ufs[] =
   {PART_CUST_A,             1776*1024, 192*1024,    UFS_PART_3},/* cust            192M   p59*/
   {PART_ODM_A,              1968*1024, 176*1024,    UFS_PART_3},/* odm             176M   p60*/
   {PART_CACHE,              2144*1024, 104*1024,    UFS_PART_3},/* cache           104M   p61*/
-  {PART_SYSTEM_A,           2248*1024, 3536*1024,      UFS_PART_3},/* system      3536M   p62*/
-  {PART_USERDATA,           5784*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p63*/
+  {PART_SYSTEM_A,           2248*1024, 3336*1024,   UFS_PART_3},/* system         3336M   p62*/
+  {PART_PATCH_A,            5584*1024, 200*1024,    UFS_PART_3},/* patch           200M   p63*/
+  {PART_USERDATA,           5784*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p64*/
   #elif defined CONFIG_MARKET_FULL_OVERSEA
   {PART_VERSION_A,          792*1024,  32*1024,     UFS_PART_3},/* version          32M   p56*/
   {PART_VENDOR_A,           824*1024,  760*1024,    UFS_PART_3},/* vendor          760M   p57*/
@@ -465,8 +472,9 @@ static const struct partition partition_table_ufs[] =
   {PART_CUST_A,             1776*1024, 192*1024,    UFS_PART_3},/* cust            192M   p59*/
   {PART_ODM_A,              1968*1024, 176*1024,    UFS_PART_3},/* odm             176M   p60*/
   {PART_CACHE,              2144*1024, 104*1024,    UFS_PART_3},/* cache           104M   p61*/
-  {PART_SYSTEM_A,           2248*1024, 5632*1024,      UFS_PART_3},/* system      5632M   p62*/
-  {PART_USERDATA,           7880*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p63*/
+  {PART_SYSTEM_A,           2248*1024, 5432*1024,   UFS_PART_3},/* system         5432M   p62*/
+  {PART_PATCH_A,            7680*1024, 200*1024,    UFS_PART_3},/* patch           200M   p63*/
+  {PART_USERDATA,           7880*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p64*/
   #elif defined CONFIG_MARKET_FULL_INTERNAL
   {PART_VERSION_A,          792*1024,  32*1024,     UFS_PART_3},/* version         32M    p56*/
   {PART_VENDOR_A,           824*1024,  760*1024,    UFS_PART_3},/* vendor          760M   p57*/
@@ -474,8 +482,9 @@ static const struct partition partition_table_ufs[] =
   {PART_CUST_A,             1776*1024, 192*1024,    UFS_PART_3},/* cust            192M   p59*/
   {PART_ODM_A,              1968*1024, 176*1024,    UFS_PART_3},/* odm             176M   p60*/
   {PART_CACHE,              2144*1024, 104*1024,    UFS_PART_3},/* cache           104M   p61*/
-  {PART_SYSTEM_A,           2248*1024, 4752*1024,      UFS_PART_3},/* system      4752M   p62*/
-  {PART_USERDATA,           7000*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p63*/
+  {PART_SYSTEM_A,           2248*1024, 4552*1024,   UFS_PART_3},/* system         4552M   p62*/
+  {PART_PATCH_A,            6800*1024, 200*1024,    UFS_PART_3},/* patch           200M   p63*/
+  {PART_USERDATA,           7000*1024, (4UL)*1024*1024,UFS_PART_3},/* userdata       4G   p64*/
   #else  /* FOR NEW PRODUCT FACTORY, HISI, SOMETHING ELSE */
   {PART_VENDOR_A,           792*1024,  760*1024,    UFS_PART_3},/* vendor          760M   p56*/
   {PART_ODM_A,              1552*1024, 176*1024,    UFS_PART_3},/* odm             176M   p57*/

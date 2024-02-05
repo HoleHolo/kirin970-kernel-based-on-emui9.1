@@ -38,9 +38,9 @@ extern unsigned int sysctl_sched_use_walt_cpu_util;
 extern unsigned int sysctl_sched_use_walt_task_util;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
-// #ifdef CONFIG_HISI_EAS_SCHED
-// extern unsigned int sysctl_sched_walt_cpu_overload_irqload;
-// #endif
+#ifdef CONFIG_HISI_EAS_SCHED
+extern unsigned int sysctl_sched_walt_cpu_overload_irqload;
+#endif
 #endif
 #ifdef CONFIG_HISI_RT_CAS
 extern unsigned int sysctl_sched_enable_rt_cas;
@@ -123,10 +123,5 @@ extern int sysctl_numa_balancing(struct ctl_table *table, int write,
 extern int sysctl_schedstats(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos);
-
-extern unsigned int sysctl_sched_boost;
-
-extern int sched_boost_handler(struct ctl_table *table, int write,
-			       void __user *buffer, size_t *lenp, loff_t *ppos);
 
 #endif /* _SCHED_SYSCTL_H */

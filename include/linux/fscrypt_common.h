@@ -165,11 +165,9 @@ struct fscrypt_operations {
 	int (*get_keyinfo)(struct inode *, void *, int *);
 	int (*is_permitted_context)(struct inode *, struct inode *);
 #ifdef CONFIG_HWAA
-	int (*set_hwaa_attr)(struct inode *, const void *, size_t, void *);
 	int (*update_hwaa_attr)(struct inode *, const void *, size_t, void *);
 	int (*get_hwaa_attr)(struct inode *, void *, size_t);
 	int (*get_hwaa_flags)(struct inode *, void *, u32 *);
-	int (*set_hwaa_flags)(struct inode *, void *, u32 *);
 #endif
 };
 

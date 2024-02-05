@@ -274,6 +274,9 @@ struct binder_node_info_for_ref {
 #define BINDER_GET_NODE_INFO_FOR_REF	_IOWR('b', 12, struct binder_node_info_for_ref)
 #define BINDER_SET_CONTEXT_MGR_EXT	_IOW('b', 13, struct flat_binder_object)
 
+#ifdef CONFIG_HARMONY_BINDER_HANDLE
+#define BINDER_TRANSLATE_HANDLE _IOWR('b', 18, __u32)
+#endif
 /*
  * NOTE: Two special error codes you should check for when calling
  * in to the driver are:

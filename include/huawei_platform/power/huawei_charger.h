@@ -109,8 +109,12 @@
 #define BATTERY_TEMPERATURE_0_C             (0)
 #define BATTERY_TEMPERATURE_5_C             (5)
 
+#define BATT_BRAND_STRING_MAX                32
+#define BATT_BRAND_NUM_MAX                   5
+
 #define CHARGING_WORK_TIMEOUT                (30000)
 #define CHARGING_WORK_PDTOSCP_TIMEOUT        1000
+#define CHARGING_WORK_WAITPD_TIMEOUT         2000
 #define MIN_CHARGING_CURRENT_OFFSET          (-10)
 #define BATTERY_FULL_CHECK_TIMIES            (2)
 #define IIN_AVG_SAMPLES                      (10)
@@ -694,6 +698,7 @@ void wireless_charge_connect_send_uevent(void);
 #endif
 int disable_chargers(int charger_type, int disable, int role);
 int set_charger_disable_flags(int, int);
+int set_charger_disable_flags_sh(unsigned int, enum disable_charger_type);
 extern struct blocking_notifier_head charger_event_notify_head;
 
 int charge_get_vbus(void);
