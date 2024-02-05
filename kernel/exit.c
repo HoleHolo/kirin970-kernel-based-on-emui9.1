@@ -63,10 +63,6 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 
-#ifdef CONFIG_HWAA
-#include <huawei_platform/hwaa/hwaa_proc_hooks.h>
-#endif
-
 static void __unhash_process(struct task_struct *p, bool group_dead)
 {
 	nr_threads--;
@@ -763,10 +759,6 @@ void __noreturn do_exit(long code)
 	ptrace_event(PTRACE_EVENT_EXIT, code);
 
 	validate_creds_for_do_exit(tsk);
-
-#ifdef CONFIG_HWAA
-	hwaa_proc_on_task_exit(tsk);
-#endif
 
 	/*
 	 * We're taking recursive faults here in do_exit. Safest is to just

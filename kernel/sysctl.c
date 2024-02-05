@@ -144,7 +144,6 @@ unsigned int ufs_dump = 0;
 static int zero;
 static int __maybe_unused one = 1;
 static int __maybe_unused two = 2;
-static int __maybe_unused three = 3;
 static int __maybe_unused four = 4;
 static unsigned long one_ul = 1;
 static int one_hundred = 100;
@@ -319,15 +318,6 @@ static int max_shrink_memory = 100;
 
 static struct ctl_table kern_table[] = {
 	{
-		.procname	= "sched_boost",
-		.data		= &sysctl_sched_boost,
-		.maxlen		= sizeof(unsigned int),
-		.mode		= 0644,
-		.proc_handler	= sched_boost_handler,
-		.extra1         = &zero,
-		.extra2		= &three,
-	},
-	{
 		.procname	= "sched_child_runs_first",
 		.data		= &sysctl_sched_child_runs_first,
 		.maxlen		= sizeof(unsigned int),
@@ -439,15 +429,15 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
-// #ifdef CONFIG_HISI_EAS_SCHED
-// 	{
-// 		.procname	= "sched_walt_cpu_overload_irqload",
-// 		.data		= &sysctl_sched_walt_cpu_overload_irqload,
-// 		.maxlen		= sizeof(unsigned int),
-// 		.mode		= 0644,
-// 		.proc_handler	= proc_dointvec,
-// 	},
-// #endif /* CONFIG_HISI_EAS_SCHED */
+#ifdef CONFIG_HISI_EAS_SCHED
+	{
+		.procname	= "sched_walt_cpu_overload_irqload",
+		.data		= &sysctl_sched_walt_cpu_overload_irqload,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+#endif /* CONFIG_HISI_EAS_SCHED */
 #endif /* CONFIG_SCHED_WALT */
 #ifdef CONFIG_HISI_RT_CAS
 	{
