@@ -258,10 +258,11 @@ extern int global_boost_enable;
 
 static struct sched_cluster *best_cluster(struct related_thread_group *grp)
 {
-	struct sched_cluster *cluster;
+	struct sched_cluster *cluster = NULL, *max_cluster = NULL;
 	int cpu;
 	unsigned long util = grp->time.normalized_util;
 	unsigned long boosted_grp_util = util + schedtune_grp_margin(util, grp);
+	unsigned long max_cap = 0, cap = 0;
 
 
 	if (grp->max_boost > 0 && global_boost_enable)
@@ -270,11 +271,17 @@ static struct sched_cluster *best_cluster(struct related_thread_group *grp)
 	/* find new cluster */
 	for_each_sched_cluster(cluster) {
 		cpu = cpumask_first(&cluster->cpus);
-		if (boosted_grp_util <= capacity_orig_of(cpu))
+		cap = capacity_orig_of(cpu);
+		if (cap > max_cap) {
+			max_cap = cap;
+			max_cluster = cluster;
+		}
+
+		if (boosted_grp_util <= cap)
 			return cluster;
 	}
 
-	return grp->preferred_cluster;
+	return max_cluster;
 }
 
 
@@ -289,7 +296,7 @@ int sched_set_group_freq_update_interval(unsigned int grp_id, unsigned int inter
 		return -EINVAL;
 
 	grp = lookup_related_thread_group(grp_id);
-	if (!grp || !grp->preferred_cluster) {
+	if (!grp) {
 		pr_err("set update interval for group %d fail\n", grp_id);
 		return -ENODEV;
 	}
@@ -328,7 +335,7 @@ int sched_set_group_util_invalid_interval(unsigned int grp_id, unsigned int inte
 		return -EINVAL;
 
 	grp = lookup_related_thread_group(grp_id);
-	if (!grp || !grp->preferred_cluster) {
+	if (!grp) {
 		pr_err("set invalid interval for group %d fail\n", grp_id);
 		return -ENODEV;
 	}
@@ -365,6 +372,12 @@ int sched_set_group_normalized_util(unsigned int grp_id, unsigned long util,
 	}
 
 	raw_spin_lock_irqsave(&grp->lock, flags);
+
+	if (list_empty(&grp->tasks)) {
+		raw_spin_unlock_irqrestore(&grp->lock, flags);
+		return 0;
+	}
+
 	grp->time.normalized_util = util;
 
 	grp->preferred_cluster = best_cluster(grp);
@@ -649,6 +662,7 @@ static void remove_task_from_group(struct task_struct *p)
 	} else {
 		_set_preferred_cluster(grp, -1);
 		grp->max_boost = 0;
+		grp->time.normalized_util = 0;
 	}
 	raw_spin_unlock_irqrestore(&grp->lock, irqflag);
 
