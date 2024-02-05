@@ -10,6 +10,8 @@
  * of the License.
  */
 
+#include <linux/gfp.h>
+
 #ifndef _PMALLOC_H
 #define _PMALLOC_H
 #ifdef CONFIG_HISI_PMALLOC
