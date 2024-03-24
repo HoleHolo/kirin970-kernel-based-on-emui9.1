@@ -46,7 +46,7 @@ jobs:
       run: |
        # 配置 KernelSU | Configure KernelSU
        rm -rf ./KernelSU
-       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
 
        # 设置环境变量 | Set environment variables
        export PATH=$(pwd)/ToolChain/bin/:$PATH
