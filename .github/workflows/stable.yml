@@ -3,7 +3,6 @@ name: Build Kernel (Stable)
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '0 11 1/14 * *'
 
 jobs:
   build:
@@ -46,7 +45,7 @@ jobs:
       run: |
        # 配置 KernelSU | Configure KernelSU
        rm -rf ./KernelSU
-       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+       git clone -b b766b98 https://github.com/tiann/KernelSU
 
        # 设置环境变量 | Set environment variables
        export PATH=$(pwd)/ToolChain/bin/:$PATH
