@@ -1,8 +1,7 @@
-name: Build Kernel (Stable)
+name: Build Kernel
 
 on:
   workflow_dispatch:
-  schedule:
 
 jobs:
   build:
