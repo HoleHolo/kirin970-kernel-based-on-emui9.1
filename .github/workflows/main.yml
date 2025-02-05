@@ -32,7 +32,7 @@ jobs:
       run: |
         # 安装所需依赖包 | Install required dependency packages
         sudo apt-get update -y
-        sudo apt install make python2 git bc ccache curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
+        sudo apt install make python2 bc curl lib32ncurses5-dev libncurses5 libncurses5-dev -y
 
         # 克隆编译器仓库 | Clone the compiler repository
         # git clone https://github.com/ibnudz/aarch64-linux-android-4.9 $(pwd)/toolchain
