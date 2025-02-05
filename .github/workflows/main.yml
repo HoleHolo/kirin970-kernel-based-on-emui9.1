@@ -45,13 +45,6 @@ jobs:
 
     - name: Build Android Kernel
       run: |
-       # 配置 KernelSU | Configure KernelSU
-       rm -rf ./KernelSU
-       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
-       cd ./KernelSU
-       git reset --hard b766b98
-       cd ..
-
        # 设置环境变量 | Set environment variables
        export PATH=$(pwd)/ToolChain/bin/:$PATH
 
